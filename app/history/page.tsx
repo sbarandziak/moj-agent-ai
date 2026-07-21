@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { useUser } from "../useUser";
 import {
   loadConversationsWithMeta,
   deleteConversation,
@@ -10,6 +11,7 @@ import {
 import { relativeTime } from "@/lib/format";
 
 export default function HistoryPage() {
+  const user = useUser();
   const [items, setItems] = useState<ConversationMeta[]>([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
@@ -17,14 +19,15 @@ export default function HistoryPage() {
   const [toast, setToast] = useState<string | null>(null);
 
   async function refresh() {
-    const data = await loadConversationsWithMeta();
+    const data = await loadConversationsWithMeta(user.id);
     setItems(data);
     setLoading(false);
   }
 
   useEffect(() => {
     refresh();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user.id]);
 
   // Filtr (bonus §4): szukaj w tytule LUB w podglądzie ostatniej wiadomości.
   const filtered = useMemo(() => {
@@ -38,7 +41,7 @@ export default function HistoryPage() {
   }, [items, query]);
 
   async function handleDelete(id: string) {
-    const ok = await deleteConversation(id);
+    const ok = await deleteConversation(id, user.id);
     setConfirmId(null);
     if (ok) {
       setItems((prev) => prev.filter((c) => c.id !== id));

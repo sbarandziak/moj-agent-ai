@@ -3,6 +3,7 @@
 import { useChat } from "@ai-sdk/react";
 import { useState, useRef, useEffect } from "react";
 import { useImageAttachment } from "../lib/useImageAttachment";
+import { useUser } from "../useUser";
 import {
   createConversation,
   saveMessage,
@@ -31,6 +32,7 @@ const EXAMPLES = [
 ];
 
 export default function ChatPage() {
+  const user = useUser(); // tożsamość z Supabase Auth (W3)
   const { messages, sendMessage, status, setMessages, error, regenerate, clearError } =
     useChat();
   const [input, setInput] = useState("");
@@ -46,8 +48,8 @@ export default function ChatPage() {
   const savedIdsRef = useRef<Set<string>>(new Set()); // id już zapisanych wiadomości
   const [loadingHistory, setLoadingHistory] = useState(true);
 
-  // Personalizacja (W3): tożsamość i profil użytkownika.
-  const userIdRef = useRef<string | null>(null); // ID z localStorage
+  // Personalizacja (W3): profil użytkownika (tożsamość = auth.uid()).
+  const userIdRef = useRef<string | null>(user.id); // ID z Supabase Auth
   const [userName, setUserName] = useState<string | null>(null);
   const [preferences, setPreferences] = useState<Record<string, string>>({});
 
@@ -58,23 +60,18 @@ export default function ChatPage() {
 
   const isLoading = status === "submitted" || status === "streaming";
 
-  // Przy starcie: zidentyfikuj użytkownika (localStorage) i wczytaj jego profil.
+  // Przy starcie: wczytaj profil zalogowanego użytkownika (auth.uid()).
   useEffect(() => {
     (async () => {
-      let id = localStorage.getItem("user_id");
-      if (!id) {
-        id = crypto.randomUUID();
-        localStorage.setItem("user_id", id);
-      }
-      userIdRef.current = id;
-      const profile = await getOrCreateProfile(id);
+      userIdRef.current = user.id;
+      const profile = await getOrCreateProfile(user.id);
       if (profile) {
         setUserName(profile.name);
         setPreferences(profile.preferences ?? {});
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [user.id]);
 
   // Po każdej zakończonej turze odśwież profil — agent mógł właśnie zapisać
   // imię lub preferencję narzędziem. Dzięki temu system prompt kolejnej
@@ -99,8 +96,8 @@ export default function ChatPage() {
     (async () => {
       const wantedId = new URLSearchParams(window.location.search).get("id");
       const conv = wantedId
-        ? await loadConversation(wantedId)
-        : await loadLatestConversation();
+        ? await loadConversation(wantedId, user.id)
+        : await loadLatestConversation(user.id);
       if (conv) {
         conversationIdRef.current = conv.id;
         const rows = await loadMessages(conv.id);
@@ -129,9 +126,10 @@ export default function ChatPage() {
         const text = textOf(m);
         if (!text.trim()) continue;
 
-        // Pierwsza wiadomość w nowej rozmowie -> stwórz rekord conversations.
+        // Pierwsza wiadomość w nowej rozmowie -> stwórz rekord conversations
+        // przypisany do zalogowanego użytkownika.
         if (!conversationIdRef.current) {
-          const id = await createConversation(makeTitle(text));
+          const id = await createConversation(makeTitle(text), user.id);
           if (!id) return; // brak połączenia z bazą — spróbujemy przy kolejnej zmianie
           conversationIdRef.current = id;
         }

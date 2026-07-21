@@ -13,6 +13,7 @@
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { useUser } from "../useUser";
 import {
   loadDocumentGroups,
   loadDocumentChunks,
@@ -30,6 +31,7 @@ type Hit = {
 
 function KnowledgeInner() {
   const params = useSearchParams();
+  const user = useUser();
   const [docs, setDocs] = useState<DocumentGroup[]>([]);
   const [loadingDocs, setLoadingDocs] = useState(true);
 
@@ -45,11 +47,11 @@ function KnowledgeInner() {
   const [searchErr, setSearchErr] = useState<string | null>(null);
 
   useEffect(() => {
-    loadDocumentGroups().then((d) => {
+    loadDocumentGroups(user.id).then((d) => {
       setDocs(d);
       setLoadingDocs(false);
     });
-  }, []);
+  }, [user.id]);
 
   // Otwórz dokument wskazany w ?doc= (np. po kliknięciu źródła w /react).
   useEffect(() => {
@@ -65,7 +67,7 @@ function KnowledgeInner() {
     }
     setOpenDoc(title);
     setLoadingChunks(true);
-    const data = await loadDocumentChunks(title);
+    const data = await loadDocumentChunks(title, user.id);
     setChunks(data);
     setLoadingChunks(false);
   }

@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
+import { supabase } from "@/lib/supabase";
+import { useUser } from "./useUser";
 
 // Dashboard (🏠) na górze; dalej czat i pozostałe narzędzia agenta.
 const LINKS = [
@@ -25,6 +27,13 @@ const LINKS = [
 export default function Nav() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const user = useUser();
+
+  // Wyloguj: kasuje sesję. AuthGate wykryje brak sesji i przekieruje na /login.
+  async function handleLogout() {
+    setOpen(false);
+    await supabase.auth.signOut();
+  }
 
   return (
     <>
@@ -63,6 +72,20 @@ export default function Nav() {
             );
           })}
         </nav>
+
+        {/* Stopka: zalogowany użytkownik + wylogowanie (W3). */}
+        <div className="sidebar-user">
+          <span className="sidebar-email" title={user.email}>
+            👤 {user.email}
+          </span>
+          <button
+            type="button"
+            className="sidebar-logout"
+            onClick={handleLogout}
+          >
+            🚪 Wyloguj
+          </button>
+        </div>
       </aside>
     </>
   );

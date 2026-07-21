@@ -20,6 +20,7 @@ export type DbConversation = {
   created_at: string;
   title: string | null;
   updated_at: string;
+  user_id: string | null; // W3: właściciel rozmowy (auth.uid())
 };
 
 export type DbMessage = {
@@ -46,11 +47,14 @@ export function makeTitle(firstMessage: string): string {
   return clean.slice(0, 47).trimEnd() + "...";
 }
 
-// Tworzy nową rozmowę i zwraca jej id (albo null przy błędzie).
-export async function createConversation(title: string): Promise<string | null> {
+// Tworzy nową rozmowę dla danego użytkownika i zwraca jej id (albo null przy błędzie).
+export async function createConversation(
+  title: string,
+  userId: string
+): Promise<string | null> {
   const { data, error } = await supabase
     .from("conversations")
-    .insert({ title })
+    .insert({ title, user_id: userId })
     .select("id")
     .single();
 
@@ -88,11 +92,14 @@ export async function touchConversation(conversationId: string): Promise<void> {
   if (error) console.error("touchConversation:", error.message);
 }
 
-// Pobiera ostatnią aktywną rozmowę (albo null jeśli baza pusta).
-export async function loadLatestConversation(): Promise<DbConversation | null> {
+// Pobiera ostatnią aktywną rozmowę TEGO użytkownika (albo null jeśli brak).
+export async function loadLatestConversation(
+  userId: string
+): Promise<DbConversation | null> {
   const { data, error } = await supabase
     .from("conversations")
     .select("*")
+    .eq("user_id", userId)
     .order("updated_at", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -104,12 +111,16 @@ export async function loadLatestConversation(): Promise<DbConversation | null> {
   return data as DbConversation | null;
 }
 
-// Pobiera jedną rozmowę po ID (albo null).
-export async function loadConversation(id: string): Promise<DbConversation | null> {
+// Pobiera jedną rozmowę po ID — tylko jeśli należy do tego użytkownika (albo null).
+export async function loadConversation(
+  id: string,
+  userId: string
+): Promise<DbConversation | null> {
   const { data, error } = await supabase
     .from("conversations")
     .select("*")
     .eq("id", id)
+    .eq("user_id", userId)
     .maybeSingle();
 
   if (error) {
@@ -127,10 +138,13 @@ export type ConversationMeta = DbConversation & {
 
 // Pobiera wszystkie rozmowy (najnowsze u góry) wraz z liczbą wiadomości
 // i podglądem ostatniej wiadomości — do strony /history (W4).
-export async function loadConversationsWithMeta(): Promise<ConversationMeta[]> {
+export async function loadConversationsWithMeta(
+  userId: string
+): Promise<ConversationMeta[]> {
   const { data: convos, error } = await supabase
     .from("conversations")
     .select("*")
+    .eq("user_id", userId)
     .order("updated_at", { ascending: false });
 
   if (error) {
@@ -165,12 +179,25 @@ export async function loadConversationsWithMeta(): Promise<ConversationMeta[]> {
   }));
 }
 
-// Usuwa rozmowę wraz z jej wiadomościami (W4 §3).
-export async function deleteConversation(id: string): Promise<boolean> {
+// Usuwa rozmowę wraz z jej wiadomościami — tylko jeśli należy do użytkownika (W4 §3, W3).
+export async function deleteConversation(
+  id: string,
+  userId: string
+): Promise<boolean> {
+  // Nie kasuj cudzej rozmowy: sprawdź właściciela zanim usuniesz wiadomości.
+  const owned = await loadConversation(id, userId);
+  if (!owned) {
+    console.error("deleteConversation: rozmowa nie należy do użytkownika");
+    return false;
+  }
   // Wiadomości i tak znikają przez ON DELETE CASCADE, ale kasujemy jawnie
   // (zgodnie z opisem warsztatu) — działa też, gdyby cascade był wyłączony.
   await supabase.from("messages").delete().eq("conversation_id", id);
-  const { error } = await supabase.from("conversations").delete().eq("id", id);
+  const { error } = await supabase
+    .from("conversations")
+    .delete()
+    .eq("id", id)
+    .eq("user_id", userId);
   if (error) {
     console.error("deleteConversation:", error.message);
     return false;
@@ -276,6 +303,7 @@ export type DbDocument = {
   title: string;
   content: string;
   metadata: Record<string, unknown>;
+  user_id: string | null; // W3: właściciel dokumentu (auth.uid())
 };
 
 // Jeden dokument zgrupowany po tytule (do listy na stronie /upload).
@@ -287,10 +315,13 @@ export type DocumentGroup = {
 
 // Pobiera zapisane dokumenty pogrupowane po tytule (najnowsze u góry).
 // Nie ściągamy wektorów (embedding) — są ogromne i niepotrzebne na liście.
-export async function loadDocumentGroups(): Promise<DocumentGroup[]> {
+export async function loadDocumentGroups(
+  userId: string
+): Promise<DocumentGroup[]> {
   const { data, error } = await supabase
     .from("documents")
     .select("title, created_at")
+    .eq("user_id", userId)
     .order("created_at", { ascending: true });
 
   if (error) {
@@ -312,9 +343,16 @@ export async function loadDocumentGroups(): Promise<DocumentGroup[]> {
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
-// Usuwa WSZYSTKIE fragmenty dokumentu o danym tytule.
-export async function deleteDocument(title: string): Promise<boolean> {
-  const { error } = await supabase.from("documents").delete().eq("title", title);
+// Usuwa WSZYSTKIE fragmenty dokumentu o danym tytule — tylko właściciela.
+export async function deleteDocument(
+  title: string,
+  userId: string
+): Promise<boolean> {
+  const { error } = await supabase
+    .from("documents")
+    .delete()
+    .eq("title", title)
+    .eq("user_id", userId);
   if (error) {
     console.error("deleteDocument:", error.message);
     return false;
@@ -332,11 +370,15 @@ export type DbChunk = {
 
 // Pobiera wszystkie fragmenty jednego dokumentu (po tytule), posortowane
 // wg chunk_index z metadata (a gdy go brak — wg czasu dodania). W4 §5.
-export async function loadDocumentChunks(title: string): Promise<DbChunk[]> {
+export async function loadDocumentChunks(
+  title: string,
+  userId: string
+): Promise<DbChunk[]> {
   const { data, error } = await supabase
     .from("documents")
     .select("id, content, created_at, metadata")
     .eq("title", title)
+    .eq("user_id", userId)
     .order("created_at", { ascending: true });
 
   if (error) {

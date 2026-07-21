@@ -27,8 +27,9 @@ export const maxDuration = 60;
 export async function POST(req: Request) {
   let title: unknown;
   let content: unknown;
+  let userId: unknown;
   try {
-    ({ title, content } = await req.json());
+    ({ title, content, userId } = await req.json());
   } catch {
     return Response.json({ error: "Nieprawidłowy JSON w żądaniu" }, { status: 400 });
   }
@@ -39,6 +40,11 @@ export async function POST(req: Request) {
   if (typeof content !== "string" || content.trim().length === 0) {
     return Response.json({ error: "Pole 'content' jest wymagane" }, { status: 400 });
   }
+  // W3: dokument musi mieć właściciela (auth.uid() z klienta).
+  if (typeof userId !== "string" || userId.trim().length === 0) {
+    return Response.json({ error: "Brak identyfikatora użytkownika (zaloguj się)" }, { status: 401 });
+  }
+  const ownerId = userId;
 
   const docTitle = title.trim();
   const chunks = splitIntoChunks(content);
@@ -77,6 +83,7 @@ export async function POST(req: Request) {
           const { error: dbErr } = await supabase.from("documents").insert({
             // created_at ustawiamy jawnie — tabela z W1 bywa bez DEFAULT now().
             created_at: new Date().toISOString(),
+            user_id: ownerId, // W3: właściciel dokumentu
             title: docTitle,
             content: chunk,
             embedding, // number[768] — PostgREST rzutuje na vector(768)

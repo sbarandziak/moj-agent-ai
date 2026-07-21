@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import Nav from "./nav";
+import AuthGate from "./auth";
 
 export const metadata: Metadata = {
   title: "Mój Agent AI — dashboard",
@@ -16,10 +16,9 @@ export default function RootLayout({
   return (
     <html lang="pl">
       <body>
-        <div className="shell">
-          <Nav />
-          <main className="main">{children}</main>
-        </div>
+        {/* AuthGate decyduje: /login samodzielnie, reszta = sidebar + treść
+            (tylko dla zalogowanych; niezalogowany -> redirect na /login). */}
+        <AuthGate>{children}</AuthGate>
       </body>
     </html>
   );

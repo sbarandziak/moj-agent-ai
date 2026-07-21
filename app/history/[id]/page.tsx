@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { use, useEffect, useState } from "react";
+import { useUser } from "../../useUser";
 import {
   loadConversation,
   loadMessages,
@@ -16,18 +17,26 @@ export default function ConversationPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  const user = useUser();
   const [conv, setConv] = useState<DbConversation | null>(null);
   const [messages, setMessages] = useState<DbMessage[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     (async () => {
-      const [c, m] = await Promise.all([loadConversation(id), loadMessages(id)]);
+      // Najpierw sprawdź własność rozmowy — cudzej nie pokazujemy.
+      const c = await loadConversation(id, user.id);
+      if (!c) {
+        setConv(null);
+        setLoading(false);
+        return;
+      }
+      const m = await loadMessages(id);
       setConv(c);
       setMessages(m);
       setLoading(false);
     })();
-  }, [id]);
+  }, [id, user.id]);
 
   return (
     <div className="history">

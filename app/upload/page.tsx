@@ -9,6 +9,7 @@
 // ============================================================
 
 import { useEffect, useState } from "react";
+import { useUser } from "../useUser";
 import {
   loadDocumentGroups,
   deleteDocument,
@@ -84,6 +85,7 @@ type Status =
   | { phase: "error"; message: string };
 
 export default function UploadPage() {
+  const user = useUser();
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [status, setStatus] = useState<Status>({ phase: "idle" });
@@ -92,14 +94,15 @@ export default function UploadPage() {
   const [confirmTitle, setConfirmTitle] = useState<string | null>(null);
 
   async function refreshDocs() {
-    const data = await loadDocumentGroups();
+    const data = await loadDocumentGroups(user.id);
     setDocs(data);
     setLoadingDocs(false);
   }
 
   useEffect(() => {
     refreshDocs();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user.id]);
 
   const working = status.phase === "working";
   const canSubmit = title.trim().length > 0 && content.trim().length > 0 && !working;
@@ -112,7 +115,7 @@ export default function UploadPage() {
       const res = await fetch("/api/upload-knowledge", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, content }),
+        body: JSON.stringify({ title, content, userId: user.id }),
       });
 
       // Błąd zanim ruszył strumień (np. walidacja 400) -> zwykły JSON.
@@ -181,7 +184,7 @@ export default function UploadPage() {
   }
 
   async function handleDelete(docTitle: string) {
-    const ok = await deleteDocument(docTitle);
+    const ok = await deleteDocument(docTitle, user.id);
     setConfirmTitle(null);
     if (ok) setDocs((prev) => prev.filter((d) => d.title !== docTitle));
   }
