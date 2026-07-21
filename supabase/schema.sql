@@ -17,7 +17,8 @@ create table if not exists public.conversations (
   id         uuid        primary key default gen_random_uuid(),
   created_at timestamptz not null    default now(),
   title      text,
-  updated_at timestamptz not null    default now()
+  updated_at timestamptz not null    default now(),
+  user_id    uuid        -- W3 (Lekcja 07): właściciel rozmowy = auth.uid()
 );
 
 -- 2. Tabela messages (wiadomości w rozmowach) ---------------
@@ -62,8 +63,9 @@ create table if not exists public.documents (
   created_at timestamptz not null    default now(),
   title      text,               -- nazwa dokumentu (np. "Cennik 2026")
   content    text,               -- fragment tekstu (chunk)
-  embedding  vector(768),        -- wektor znaczeniowy (Gemini text-embedding-004)
-  metadata   jsonb       not null default '{}'::jsonb
+  embedding  vector(768),        -- wektor znaczeniowy (Gemini gemini-embedding-001, 768D)
+  metadata   jsonb       not null default '{}'::jsonb,
+  user_id    uuid                -- W3 (Lekcja 07): właściciel dokumentu = auth.uid()
 );
 
 alter table public.documents disable row level security;

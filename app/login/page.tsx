@@ -10,7 +10,7 @@
 "use client";
 
 import { useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { supabase, getOrCreateProfile } from "@/lib/supabase";
 
 type Mode = "login" | "register";
 
@@ -48,6 +48,11 @@ export default function LoginPage() {
         if (error) {
           setError(translateError(error.message));
           return;
+        }
+        // W4 §1: przy rejestracji zakładamy pusty profil (name = null).
+        // Agent, widząc brak imienia, zapyta o nie w pierwszej rozmowie.
+        if (data.user) {
+          await getOrCreateProfile(data.user.id);
         }
         if (!data.session) {
           // Sesji brak = w Supabase włączone potwierdzanie email.
