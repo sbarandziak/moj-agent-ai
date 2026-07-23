@@ -17,7 +17,7 @@
 //   { "type": "error",    "message": "..." }
 // ============================================================
 
-import { supabase } from "@/lib/supabase";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { splitIntoChunks } from "@/lib/chunking";
 import { getEmbedding } from "@/lib/embeddings";
 
@@ -62,6 +62,10 @@ export async function POST(req: Request) {
   const stream = new ReadableStream({
     async start(controller) {
       try {
+        // Klient service_role: trasa jest zaufana (sama sprawdziła userId),
+        // a klient `anon` bez sesji zostałby zablokowany przez RLS (W3).
+        const db = getSupabaseAdmin();
+
         send(controller, { type: "start", total: chunks.length });
 
         let saved = 0;
@@ -80,7 +84,7 @@ export async function POST(req: Request) {
           }
 
           // b) zapis do Supabase
-          const { error: dbErr } = await supabase.from("documents").insert({
+          const { error: dbErr } = await db.from("documents").insert({
             // created_at ustawiamy jawnie — tabela z W1 bywa bez DEFAULT now().
             created_at: new Date().toISOString(),
             user_id: ownerId, // W3: właściciel dokumentu

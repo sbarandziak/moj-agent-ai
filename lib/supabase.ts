@@ -6,6 +6,10 @@
 // ============================================================
 
 import { createClient } from "@supabase/supabase-js";
+// Klient service_role — TYLKO do zapisów serwerowych bez sesji (W3).
+// Import jest bezpieczny w bundlu klienta: klient admin tworzy się dopiero
+// przy wywołaniu getSupabaseAdmin(), a te wołamy wyłącznie server-side.
+import { getSupabaseAdmin } from "./supabaseAdmin";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -262,8 +266,10 @@ export async function getOrCreateProfile(userId: string): Promise<DbProfile | nu
 }
 
 // Zapisuje imię użytkownika (narzędzie saveUserName).
+// Wołane server-side z /api/chat (bez sesji) — używamy klienta admin,
+// bo klient `anon` zostałby zablokowany przez RLS (W3).
 export async function updateUserName(userId: string, name: string): Promise<boolean> {
-  const { error } = await supabase
+  const { error } = await getSupabaseAdmin()
     .from("user_profiles")
     .update({ name })
     .eq("id", userId);
@@ -275,14 +281,22 @@ export async function updateUserName(userId: string, name: string): Promise<bool
 }
 
 // Dopisuje jedną preferencję do JSONB (nie nadpisuje pozostałych).
+// Server-side (bez sesji): i odczyt, i zapis idą klientem admin — inaczej
+// pod RLS odczyt zwróciłby null i skasowałby dotychczasowe preferencje.
 export async function updateUserPreference(
   userId: string,
   key: string,
   value: string
 ): Promise<boolean> {
-  const profile = await loadProfile(userId);
-  const merged = { ...(profile?.preferences ?? {}), [key]: value };
-  const { error } = await supabase
+  const admin = getSupabaseAdmin();
+  const { data: profile } = await admin
+    .from("user_profiles")
+    .select("preferences")
+    .eq("id", userId)
+    .maybeSingle();
+  const current = (profile?.preferences ?? {}) as Record<string, string>;
+  const merged = { ...current, [key]: value };
+  const { error } = await admin
     .from("user_profiles")
     .update({ preferences: merged })
     .eq("id", userId);
