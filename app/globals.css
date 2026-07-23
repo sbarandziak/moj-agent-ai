@@ -3100,3 +3100,31 @@ body {
     display: none;
   }
 }
+
+/* ============================================================
+   Analiza konkurencji (lekcja 08, W3) — /competitor
+   Reużywa klas .rp-* (nagłówek, inputy, przyciski, wynik);
+   poniżej tylko układ 3 pól + textarea kontekstu.
+   ============================================================ */
+.cmp-form {
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cmp-firms {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.cmp-context {
+  resize: vertical;
+  min-height: 44px;
+  line-height: 1.5;
+}
+
+@media (max-width: 640px) {
+  .cmp-firms {
+    grid-template-columns: 1fr;
+  }
+}
