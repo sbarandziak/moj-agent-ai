@@ -20,6 +20,7 @@ const LINKS = [
   { href: "/email-triage", icon: "📧", label: "E-mail Triage" },
   { href: "/report", icon: "📊", label: "Raporty" },
   { href: "/competitor", icon: "🏢", label: "Konkurencja" },
+  { href: "/summarize", icon: "📖", label: "Streszczacz" },
   { href: "/search", icon: "🌐", label: "Szukaj" },
   { href: "/generate", icon: "🎨", label: "Grafiki" },
   { href: "/vision", icon: "👁️", label: "Vision" },
