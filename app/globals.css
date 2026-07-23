@@ -2508,3 +2508,331 @@ body {
   background: #1f1414;
   border-color: #5a2020;
 }
+
+/* ============================================================
+   E-mail Triage (lekcja 08, W1) — /email-triage
+   ============================================================ */
+.et {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 20px 60px;
+  max-width: 900px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.et-header {
+  margin-bottom: 18px;
+}
+
+.et-header h1 {
+  font-size: 1.5rem;
+  font-weight: 800;
+}
+
+.et-sub {
+  margin-top: 4px;
+  color: #999;
+  font-size: 0.9rem;
+}
+
+.et-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  background: #14141c;
+  border: 1px solid var(--ai-border);
+  border-radius: 14px;
+}
+
+.et-textarea {
+  min-height: 200px;
+  resize: vertical;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid #333;
+  background: #0f0f16;
+  color: var(--fg);
+  font-family: inherit;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.et-textarea:focus {
+  outline: none;
+  border-color: #4a4af0;
+}
+
+.et-textarea:disabled {
+  opacity: 0.6;
+}
+
+.et-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.et-btn {
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: 1px solid #333;
+  background: #1a1a22;
+  color: var(--fg);
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.et-btn:hover:not(:disabled) {
+  background: #22222c;
+  border-color: #4a4af0;
+}
+
+.et-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.et-btn-primary {
+  background: #4a4af0;
+  border-color: #4a4af0;
+  color: #fff;
+}
+
+.et-btn-primary:hover:not(:disabled) {
+  background: #5b5bff;
+}
+
+.et-count {
+  margin-left: auto;
+  color: #888;
+  font-size: 0.82rem;
+}
+
+.et-error {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: #2a1414;
+  border: 1px solid #5a2020;
+  color: #ff9a9a;
+  font-size: 0.88rem;
+}
+
+.et-summary {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 18px 0 12px;
+}
+
+.et-pill {
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  border: 1px solid;
+}
+
+.et-pill.high {
+  color: #ff9a9a;
+  background: #2a1414;
+  border-color: #5a2020;
+}
+
+.et-pill.mid {
+  color: #ffd98a;
+  background: #2a2414;
+  border-color: #5a4a20;
+}
+
+.et-pill.low {
+  color: #9ae6a0;
+  background: #142a18;
+  border-color: #205a2a;
+}
+
+.et-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 6px;
+}
+
+.et-card {
+  padding: 16px;
+  border-radius: 14px;
+  background: var(--ai-bg);
+  border: 1px solid var(--ai-border);
+  border-left-width: 5px;
+}
+
+/* Kolor lewej ramki = priorytet maila. */
+.et-card.high {
+  border-left-color: #e05252;
+}
+
+.et-card.mid {
+  border-left-color: #e0b452;
+}
+
+.et-card.low {
+  border-left-color: #52c96a;
+}
+
+.et-card.none {
+  border-left-color: #555;
+}
+
+.et-card.summary {
+  background: #14141c;
+  border-left-color: #4a4af0;
+}
+
+.et-card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.et-card-title {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.et-badge {
+  margin-left: auto;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  border: 1px solid;
+}
+
+.et-badge.high {
+  color: #ff9a9a;
+  background: #2a1414;
+  border-color: #5a2020;
+}
+
+.et-badge.mid {
+  color: #ffd98a;
+  background: #2a2414;
+  border-color: #5a4a20;
+}
+
+.et-badge.low {
+  color: #9ae6a0;
+  background: #142a18;
+  border-color: #205a2a;
+}
+
+.et-badge.none {
+  color: #999;
+  background: #1a1a22;
+  border-color: #333;
+}
+
+.et-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.et-meta-row {
+  display: flex;
+  gap: 10px;
+  font-size: 0.86rem;
+}
+
+.et-meta-row dt {
+  flex: 0 0 110px;
+  color: #888;
+  font-weight: 600;
+}
+
+.et-meta-row dd {
+  flex: 1;
+  min-width: 0;
+  color: var(--fg);
+}
+
+.et-body {
+  font-size: 0.88rem;
+  line-height: 1.6;
+  color: #ccc;
+}
+
+.et-draft {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #2a2a34;
+}
+
+.et-draft-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #aaa;
+}
+
+.et-copy {
+  margin-left: auto;
+  padding: 5px 10px;
+  border-radius: 8px;
+  border: 1px solid #333;
+  background: #1a1a22;
+  color: var(--fg);
+  font-size: 0.76rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.et-copy:hover {
+  border-color: #4a4af0;
+}
+
+.et-quote {
+  padding: 10px 14px;
+  border-left: 3px solid #4a4af0;
+  background: #10101a;
+  border-radius: 0 8px 8px 0;
+  font-size: 0.88rem;
+  line-height: 1.6;
+  color: #ddd;
+  white-space: pre-wrap;
+}
+
+.et-empty {
+  padding: 24px;
+  text-align: center;
+  color: #888;
+  font-size: 0.9rem;
+  border: 1px dashed #333;
+  border-radius: 14px;
+}
+
+@media (max-width: 640px) {
+  .et {
+    padding: 16px 12px 48px;
+  }
+
+  .et-count {
+    margin-left: 0;
+  }
+
+  .et-meta-row {
+    flex-direction: column;
+    gap: 0;
+  }
+}

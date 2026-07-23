@@ -17,6 +17,7 @@ const LINKS = [
   { href: "/fewshot", icon: "📚", label: "Słownik" },
   { href: "/format", icon: "📐", label: "Formater" },
   { href: "/email", icon: "✉️", label: "E-mail" },
+  { href: "/email-triage", icon: "📧", label: "E-mail Triage" },
   { href: "/search", icon: "🌐", label: "Szukaj" },
   { href: "/generate", icon: "🎨", label: "Grafiki" },
   { href: "/vision", icon: "👁️", label: "Vision" },
@@ -57,8 +58,12 @@ export default function Nav() {
         <div className="sidebar-brand">🤖 Mój Agent</div>
         <nav className="sidebar-nav">
           {LINKS.map((l) => {
+            // Dopasowanie po całym segmencie ścieżki — inaczej /email-triage
+            // podświetlałoby również zakładkę /email.
             const active =
-              l.href === "/" ? pathname === "/" : pathname.startsWith(l.href);
+              l.href === "/"
+                ? pathname === "/"
+                : pathname === l.href || pathname.startsWith(l.href + "/");
             return (
               <Link
                 key={l.href}
