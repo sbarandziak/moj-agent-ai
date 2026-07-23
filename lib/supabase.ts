@@ -407,3 +407,64 @@ export async function loadDocumentChunks(
     return ai - bi;
   });
 }
+
+// ============================================================
+// Warsztat 2 (Lekcja 08): Zapisane raporty — tabela reports
+// ============================================================
+
+export type DbReport = {
+  id: string;
+  created_at: string;
+  user_id: string;
+  topic: string;
+  content: string;
+};
+
+// Zapisuje gotowy raport użytkownika. Zwraca id albo null przy błędzie
+// (np. gdy nie puszczono jeszcze supabase/reports.sql).
+export async function saveReport(
+  userId: string,
+  topic: string,
+  content: string
+): Promise<string | null> {
+  const { data, error } = await supabase
+    .from("reports")
+    .insert({ user_id: userId, topic, content })
+    .select("id")
+    .single();
+
+  if (error) {
+    console.error("saveReport:", error.message);
+    return null;
+  }
+  return data.id;
+}
+
+// Pobiera zapisane raporty użytkownika (najnowsze u góry).
+export async function loadReports(userId: string): Promise<DbReport[]> {
+  const { data, error } = await supabase
+    .from("reports")
+    .select("*")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("loadReports:", error.message);
+    return [];
+  }
+  return (data ?? []) as DbReport[];
+}
+
+// Usuwa raport — tylko własny.
+export async function deleteReport(id: string, userId: string): Promise<boolean> {
+  const { error } = await supabase
+    .from("reports")
+    .delete()
+    .eq("id", id)
+    .eq("user_id", userId);
+  if (error) {
+    console.error("deleteReport:", error.message);
+    return false;
+  }
+  return true;
+}

@@ -18,6 +18,7 @@ const LINKS = [
   { href: "/format", icon: "📐", label: "Formater" },
   { href: "/email", icon: "✉️", label: "E-mail" },
   { href: "/email-triage", icon: "📧", label: "E-mail Triage" },
+  { href: "/report", icon: "📊", label: "Raporty" },
   { href: "/search", icon: "🌐", label: "Szukaj" },
   { href: "/generate", icon: "🎨", label: "Grafiki" },
   { href: "/vision", icon: "👁️", label: "Vision" },
