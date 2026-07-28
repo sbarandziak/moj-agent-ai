@@ -45,7 +45,7 @@ export default function BriefingsPage() {
   async function generateBriefing() {
     setGenerating(true);
     try {
-      const response = await fetch("/api/cron/morning");
+      const response = await fetch("/api/briefing/generate");
       const data = await response.json();
 
       if (data.success) {
