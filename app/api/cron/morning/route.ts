@@ -42,16 +42,16 @@ async function callTool(t: any, args: Record<string, unknown>): Promise<unknown>
 }
 
 export async function GET(request: Request) {
-  // W2 §2: endpoint jest publiczny, więc wpuszczamy tylko wywołania z poprawnym
-  // sekretem. Vercel Cron sam dokłada nagłówek `Authorization: Bearer <CRON_SECRET>`
-  // (o ile CRON_SECRET jest ustawiony w Vercel → Environment Variables).
-  // Bez CRON_SECRET w env check się nie wykona — endpoint zostaje otwarty (wygodne
-  // w dev/testach). Gdy sekret jest ustawiony — obcy request dostaje 401.
+  // W2 §2: endpoint jest publiczny dla ręcznego triggera z UI.
+  // Vercel Cron samo go wołana automatycznie (każdego dnia o 7 UTC).
   const secret = process.env.CRON_SECRET;
   if (secret) {
     const authHeader = request.headers.get("authorization");
     if (authHeader !== `Bearer ${secret}`) {
-      return new Response("Unauthorized", { status: 401 });
+      return Response.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 }
+      );
     }
   }
 
