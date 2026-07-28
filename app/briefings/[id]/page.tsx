@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
 import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 
@@ -11,20 +12,22 @@ type Briefing = {
   content: string;
 };
 
-export default function BriefingDetailPage({ params }: { params: { id: string } }) {
+export default function BriefingDetailPage() {
+  const params = useParams();
+  const id = params.id as string;
   const [briefing, setBriefing] = useState<Briefing | null>(null);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     loadBriefing();
-  }, [params.id]);
+  }, [id]);
 
   async function loadBriefing() {
     setLoading(true);
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/briefings?id=eq.${params.id}&select=*`,
+        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/briefings?id=eq.${id}&select=*`,
         {
           headers: {
             apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "",
