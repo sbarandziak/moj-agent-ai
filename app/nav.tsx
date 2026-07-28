@@ -11,6 +11,7 @@ const LINKS = [
   { href: "/", icon: "🏠", label: "Dashboard" },
   { href: "/chat", icon: "💬", label: "Chat" },
   { href: "/history", icon: "📜", label: "Historia" },
+  { href: "/briefings", icon: "📰", label: "Briefingi" },
   { href: "/upload", icon: "📤", label: "Dodaj wiedzę" },
   { href: "/knowledge", icon: "🔎", label: "Baza wiedzy" },
   { href: "/think", icon: "🧠", label: "Myślenie" },

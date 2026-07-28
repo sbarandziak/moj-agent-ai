@@ -514,3 +514,44 @@ export async function loadWebhookEventsByType(
   }
   return (data ?? []) as DbWebhookEvent[];
 }
+
+// ============================================================
+// Warsztat 4 (Lekcja 09): Briefingi — tabela briefings
+// ============================================================
+
+export type DbBriefing = {
+  id: string;
+  created_at: string;
+  date: string; // ISO format np. "2026-07-28"
+  content: string; // markdown treść briefingu
+};
+
+// Pobiera wszystkie briefingi (najnowsze u góry).
+export async function loadBriefings(limit = 30): Promise<DbBriefing[]> {
+  const { data, error } = await supabase
+    .from("briefings")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    console.error("loadBriefings:", error.message);
+    return [];
+  }
+  return (data ?? []) as DbBriefing[];
+}
+
+// Pobiera jeden briefing po ID.
+export async function loadBriefing(id: string): Promise<DbBriefing | null> {
+  const { data, error } = await supabase
+    .from("briefings")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error) {
+    console.error("loadBriefing:", error.message);
+    return null;
+  }
+  return (data ?? null) as DbBriefing | null;
+}
