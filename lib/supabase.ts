@@ -468,3 +468,49 @@ export async function deleteReport(id: string, userId: string): Promise<boolean>
   }
   return true;
 }
+
+// ============================================================
+// Warsztat 3 (Lekcja 09): Webhook — tabela webhook_events
+// ============================================================
+
+export type DbWebhookEvent = {
+  id: string;
+  created_at: string;
+  type: "feedback" | "alert" | "order";
+  data: Record<string, unknown>;
+  analysis: string;
+};
+
+// Pobiera ostatnie zdarzenia webhook (do debugowania/monitorowania).
+export async function loadWebhookEvents(limit = 20): Promise<DbWebhookEvent[]> {
+  const { data, error } = await supabase
+    .from("webhook_events")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    console.error("loadWebhookEvents:", error.message);
+    return [];
+  }
+  return (data ?? []) as DbWebhookEvent[];
+}
+
+// Pobiera zdarzenia konkretnego typu (np. wszystkie feedback'i).
+export async function loadWebhookEventsByType(
+  type: "feedback" | "alert" | "order",
+  limit = 20
+): Promise<DbWebhookEvent[]> {
+  const { data, error } = await supabase
+    .from("webhook_events")
+    .select("*")
+    .eq("type", type)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    console.error("loadWebhookEventsByType:", error.message);
+    return [];
+  }
+  return (data ?? []) as DbWebhookEvent[];
+}
