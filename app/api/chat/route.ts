@@ -8,6 +8,7 @@ import {
 } from "ai";
 import { z } from "zod";
 import { updateUserName, updateUserPreference } from "@/lib/supabase";
+import { validateInput, filterOutput, checkRateLimit } from "@/lib/defenses";
 
 // Pozwól odpowiedziom strumieniować się do 60 sekund (Pro bywa wolniejszy).
 export const maxDuration = 60;
@@ -112,6 +113,41 @@ export async function POST(req: Request) {
     preferences?: Record<string, string>;
   } = await req.json();
 
+  // ========== W2: Rate limiting per user ==========
+  if (userId) {
+    const rateLimitCheck = checkRateLimit(userId);
+    if (!rateLimitCheck.allowed) {
+      return new Response(
+        JSON.stringify({
+          error: `Osiągnąłeś limit wiadomości (50/h). Spróbuj za ${rateLimitCheck.minutesUntilReset} minut.`,
+        }),
+        { status: 429, headers: { "Content-Type": "application/json" } }
+      );
+    }
+  }
+
+  // ========== W2: Input validation ==========
+  for (const msg of messages) {
+    if (msg.role === "user") {
+      // UIMessage has parts array, extract text from user messages
+      const parts = (msg as any).parts ?? [];
+      const textContent = parts
+        .filter((p: any) => p.type === "text")
+        .map((p: any) => p.text)
+        .join("\n");
+
+      if (textContent) {
+        const validation = validateInput(textContent);
+        if (!validation.valid) {
+          return new Response(
+            JSON.stringify({ error: validation.reason }),
+            { status: 400, headers: { "Content-Type": "application/json" } }
+          );
+        }
+      }
+    }
+  }
+
   const modelId = MODELS[model] ?? MODELS.flash;
 
   // Personalizacja: dobuduj do system promptu wiedzę o użytkowniku (W3 §4).
@@ -171,12 +207,85 @@ export async function POST(req: Request) {
     stopWhen: stepCountIs(maxSteps),
   });
 
-  // Dołącz użyty model jako metadane — interfejs pokaże etykietę.
-  // onError: domyślnie SDK maskuje błąd jako "An error occurred." — podmieniamy
-  // na czytelny komunikat, żeby użytkownik wiedział, co się stało (np. limit API).
-  return result.toUIMessageStreamResponse({
+  // ========== W2: Output filtering ==========
+  // Intercept the stream to filter out sensitive data
+  const originalStream = result.toUIMessageStreamResponse({
     messageMetadata: () => ({ model }),
     onError: errorMessage,
+  });
+
+  // Create a new response that filters the stream
+  const reader = originalStream.body?.getReader();
+  if (!reader) return originalStream;
+
+  const filteredStream = new ReadableStream({
+    async start(controller) {
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const chunk = new TextDecoder().decode(value);
+
+          // Parse the SSE format and check for sensitive data
+          // Format: "0: {"type":"...", "text":"..."}\n"
+          const lines = chunk.split("\n");
+          const filtered = lines
+            .map((line) => {
+              // Skip empty lines and non-data lines
+              if (!line.startsWith("0:")) return line;
+
+              try {
+                const jsonStr = line.substring(2).trim();
+                if (!jsonStr) return line;
+
+                const obj = JSON.parse(jsonStr);
+
+                // Filter text content in text, assistant messages, and delta.text
+                if (obj.text && typeof obj.text === "string") {
+                  const result = filterOutput(obj.text);
+                  if (!result.safe) {
+                    obj.text = result.text;
+                  }
+                }
+
+                if (obj.content && Array.isArray(obj.content)) {
+                  obj.content = obj.content.map((c: any) => {
+                    if (c.type === "text" && c.text) {
+                      const result = filterOutput(c.text);
+                      if (!result.safe) c.text = result.text;
+                    }
+                    return c;
+                  });
+                }
+
+                if (obj.delta?.text && typeof obj.delta.text === "string") {
+                  const result = filterOutput(obj.delta.text);
+                  if (!result.safe) {
+                    obj.delta.text = result.text;
+                  }
+                }
+
+                return "0: " + JSON.stringify(obj);
+              } catch {
+                // If it's not JSON, pass through unchanged
+                return line;
+              }
+            })
+            .join("\n");
+
+          controller.enqueue(new TextEncoder().encode(filtered));
+        }
+      } catch (err) {
+        controller.error(err);
+      } finally {
+        controller.close();
+      }
+    },
+  });
+
+  return new Response(filteredStream, {
+    headers: originalStream.headers,
   });
 }
 
