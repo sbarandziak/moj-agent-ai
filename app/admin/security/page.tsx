@@ -258,7 +258,13 @@ export default function SecurityPage() {
                           <span className="sec-log-time">{when(b.created_at)}</span>
                         </div>
                         <div className="sec-log-msg">„{b.message}"</div>
-                        {b.reason && <div className="sec-log-reason">↳ {b.reason}</div>}
+                        {/* Bez znaków typu "↳" — Windows podstawia za nie
+                            zastępczy glif z innego fontu. */}
+                        {b.reason && (
+                          <div className="sec-log-reason">
+                            <b>Powód:</b> {b.reason}
+                          </div>
+                        )}
                       </li>
                     );
                   })}
