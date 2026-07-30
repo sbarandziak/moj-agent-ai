@@ -10,6 +10,7 @@ import { z } from "zod";
 import { updateUserName, updateUserPreference } from "@/lib/supabase";
 import { validateInput, filterOutput, checkRateLimit } from "@/lib/defenses";
 import { checkBudget, budgetExceededResponse, logUsage } from "@/lib/budget";
+import { logBlockedMessage } from "@/lib/security-log";
 
 // Pozwól odpowiedziom strumieniować się do 60 sekund (Pro bywa wolniejszy).
 export const maxDuration = 60;
@@ -114,16 +115,28 @@ export async function POST(req: Request) {
     preferences?: Record<string, string>;
   } = await req.json();
 
+  // Ostatnia wiadomość użytkownika — to ją logujemy w W4, gdy któraś
+  // warstwa obrony zadziała (rate limit / budżet nie mają "winnej" frazy,
+  // ale i tak chcemy wiedzieć, na czym user się zatrzymał).
+  const lastUserText = textOfLastUserMessage(messages);
+
   // ========== W2: Rate limiting per user ==========
   if (userId) {
     const rateLimitCheck = checkRateLimit(userId);
     if (!rateLimitCheck.allowed) {
-      return new Response(
-        JSON.stringify({
-          error: `Osiągnąłeś limit wiadomości (50/h). Spróbuj za ${rateLimitCheck.minutesUntilReset} minut.`,
-        }),
-        { status: 429, headers: { "Content-Type": "application/json" } }
-      );
+      const reason = `Osiągnąłeś limit wiadomości (50/h). Spróbuj za ${rateLimitCheck.minutesUntilReset} minut.`;
+      // W4: ślad w panelu bezpieczeństwa.
+      await logBlockedMessage({
+        userId,
+        message: lastUserText,
+        reason,
+        layer: "rate_limit",
+        endpoint: "/api/chat",
+      });
+      return new Response(JSON.stringify({ error: reason }), {
+        status: 429,
+        headers: { "Content-Type": "application/json" },
+      });
     }
   }
 
@@ -140,6 +153,15 @@ export async function POST(req: Request) {
       if (textContent) {
         const validation = validateInput(textContent);
         if (!validation.valid) {
+          // W4: logujemy TREŚĆ, która wywaliła walidację — to ona jest
+          // właściwym „podejrzanym" wpisem w panelu.
+          await logBlockedMessage({
+            userId,
+            message: textContent,
+            reason: validation.reason ?? "Zablokowane przez walidację.",
+            layer: "input",
+            endpoint: "/api/chat",
+          });
           return new Response(
             JSON.stringify({ error: validation.reason }),
             { status: 400, headers: { "Content-Type": "application/json" } }
@@ -152,6 +174,13 @@ export async function POST(req: Request) {
   // ========== W3 (L10): Budżet tokenów — sprawdzamy PRZED wywołaniem modelu ==========
   const budget = await checkBudget(userId);
   if (!budget.allowed) {
+    await logBlockedMessage({
+      userId,
+      message: lastUserText,
+      reason: budget.reason ?? "Dzienny limit tokenów wyczerpany.",
+      layer: "budget",
+      endpoint: "/api/chat",
+    });
     return budgetExceededResponse(budget);
   }
 
@@ -236,6 +265,22 @@ export async function POST(req: Request) {
   const reader = originalStream.body?.getReader();
   if (!reader) return originalStream;
 
+  // W4: filtr outputu potrafi trafić kilka fragmentów jednej odpowiedzi —
+  // do panelu chcemy JEDEN wpis na odpowiedź, nie jeden na chunk.
+  let outputLeakLogged = false;
+  const noteOutputLeak = () => {
+    if (outputLeakLogged) return;
+    outputLeakLogged = true;
+    // Fire-and-forget: nie wstrzymujemy streamu na zapisie do bazy.
+    void logBlockedMessage({
+      userId,
+      message: lastUserText,
+      reason: "Filtr outputu zatrzymał odpowiedź (podejrzenie wycieku danych).",
+      layer: "output",
+      endpoint: "/api/chat",
+    });
+  };
+
   const filteredStream = new ReadableStream({
     async start(controller) {
       try {
@@ -264,6 +309,7 @@ export async function POST(req: Request) {
                   const result = filterOutput(obj.text);
                   if (!result.safe) {
                     obj.text = result.text;
+                    noteOutputLeak();
                   }
                 }
 
@@ -271,7 +317,10 @@ export async function POST(req: Request) {
                   obj.content = obj.content.map((c: any) => {
                     if (c.type === "text" && c.text) {
                       const result = filterOutput(c.text);
-                      if (!result.safe) c.text = result.text;
+                      if (!result.safe) {
+                        c.text = result.text;
+                        noteOutputLeak();
+                      }
                     }
                     return c;
                   });
@@ -281,6 +330,7 @@ export async function POST(req: Request) {
                   const result = filterOutput(obj.delta.text);
                   if (!result.safe) {
                     obj.delta.text = result.text;
+                    noteOutputLeak();
                   }
                 }
 
@@ -305,6 +355,20 @@ export async function POST(req: Request) {
   return new Response(filteredStream, {
     headers: originalStream.headers,
   });
+}
+
+// Treść ostatniej wiadomości użytkownika (części typu "text") — do logu W4.
+function textOfLastUserMessage(messages: UIMessage[]): string {
+  const last = [...messages].reverse().find((m) => m.role === "user");
+  if (!last) return "";
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const parts = (last as any).parts ?? [];
+  return parts
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .filter((p: any) => p.type === "text")
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .map((p: any) => p.text)
+    .join("\n");
 }
 
 // Zamienia błąd modelu na zwięzły, zrozumiały komunikat po polsku.

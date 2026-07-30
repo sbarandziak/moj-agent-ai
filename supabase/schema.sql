@@ -122,3 +122,23 @@ create table if not exists public.api_usage (
 
 create index if not exists api_usage_user_created_idx
   on public.api_usage (user_id, created_at desc);
+
+-- ============================================================
+-- Lekcja 10, Warsztat 4: Log bezpieczeństwa (tabela `message_logs`)
+-- ------------------------------------------------------------
+-- Pełna wersja (indeksy, RLS, komentarze) w supabase/message_logs.sql.
+-- ============================================================
+
+create table if not exists public.message_logs (
+  id         uuid        primary key default gen_random_uuid(),
+  created_at timestamptz not null default now(),
+  user_id    uuid,
+  message    text        not null,
+  blocked    boolean     not null default true,
+  reason     text,
+  layer      text        not null default 'input',   -- input | output | rate_limit | budget
+  endpoint   text        not null default 'unknown'
+);
+
+create index if not exists message_logs_blocked_idx
+  on public.message_logs (blocked, created_at desc);

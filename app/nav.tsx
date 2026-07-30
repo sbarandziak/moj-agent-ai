@@ -27,6 +27,7 @@ const LINKS = [
   { href: "/vision", icon: "👁️", label: "Vision" },
   { href: "/react", icon: "🔄", label: "ReAct" },
   { href: "/travel", icon: "✈️", label: "Podróże" },
+  { href: "/admin/security", icon: "🛡️", label: "Bezpieczeństwo" },
 ];
 
 export default function Nav() {
