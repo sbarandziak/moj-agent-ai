@@ -9,6 +9,7 @@ import {
 import { z } from "zod";
 import { updateUserName, updateUserPreference } from "@/lib/supabase";
 import { validateInput, filterOutput, checkRateLimit } from "@/lib/defenses";
+import { checkBudget, budgetExceededResponse, logUsage } from "@/lib/budget";
 
 // Pozwól odpowiedziom strumieniować się do 60 sekund (Pro bywa wolniejszy).
 export const maxDuration = 60;
@@ -148,6 +149,12 @@ export async function POST(req: Request) {
     }
   }
 
+  // ========== W3 (L10): Budżet tokenów — sprawdzamy PRZED wywołaniem modelu ==========
+  const budget = await checkBudget(userId);
+  if (!budget.allowed) {
+    return budgetExceededResponse(budget);
+  }
+
   const modelId = MODELS[model] ?? MODELS.flash;
 
   // Personalizacja: dobuduj do system promptu wiedzę o użytkowniku (W3 §4).
@@ -205,6 +212,17 @@ export async function POST(req: Request) {
     tools,
     // Pozwól modelowi odpowiedzieć PO wywołaniu narzędzia (zapis imienia/preferencji).
     stopWhen: stepCountIs(maxSteps),
+    // ===== W3 (L10): logujemy realne zużycie PO zakończeniu streamu =====
+    // `usage` jest zsumowane po wszystkich krokach agenta (stopWhen powyżej).
+    onFinish: async ({ usage }) => {
+      await logUsage({
+        userId,
+        tokensInput: usage.inputTokens,
+        tokensOutput: usage.outputTokens,
+        model: modelId,
+        endpoint: "/api/chat",
+      });
+    },
   });
 
   // ========== W2: Output filtering ==========

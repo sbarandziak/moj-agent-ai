@@ -3,6 +3,8 @@
 import { useChat } from "@ai-sdk/react";
 import { useState, useRef, useEffect } from "react";
 import { useImageAttachment } from "../lib/useImageAttachment";
+import { useBudget, budgetColor } from "../lib/useBudget";
+import { errorText } from "../lib/errorText";
 import { useUser } from "../useUser";
 import {
   createConversation,
@@ -53,6 +55,9 @@ export default function ChatPage() {
   const [userName, setUserName] = useState<string | null>(null);
   const [preferences, setPreferences] = useState<Record<string, string>>({});
 
+  // Budżet tokenów (W3, L10): ile z dziennego limitu zostało.
+  const { budget, refresh: refreshBudget } = useBudget(user.id);
+
   // Auto-scroll do ostatniej wiadomości.
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -80,6 +85,11 @@ export default function ChatPage() {
     if (isLoading || loadingHistory) return;
     const id = userIdRef.current;
     if (!id) return;
+    // Tura skończona → odśwież licznik budżetu. Drugie odpytanie po chwili,
+    // bo zapis usage leci na serwerze tuż PO zamknięciu streamu i pierwszy
+    // strzał potrafi go jeszcze nie zobaczyć.
+    refreshBudget();
+    const budgetRetry = setTimeout(refreshBudget, 1500);
     (async () => {
       const profile = await loadProfile(id);
       if (profile) {
@@ -87,6 +97,7 @@ export default function ChatPage() {
         setPreferences(profile.preferences ?? {});
       }
     })();
+    return () => clearTimeout(budgetRetry);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoading]);
 
@@ -244,6 +255,17 @@ export default function ChatPage() {
               )}
               Wiadomości: <b>{messages.length}</b> &nbsp;|&nbsp; ~Tokeny:{" "}
               <b>{tokenEstimate}</b>
+              {budget && (
+                <>
+                  {" "}
+                  &nbsp;|&nbsp; 🔋 Budżet dziś:{" "}
+                  <b style={{ color: budgetColor(budget.percent) }}>
+                    {budget.used.toLocaleString("pl-PL")}/
+                    {budget.limit.toLocaleString("pl-PL")}
+                  </b>{" "}
+                  tokenów ({budget.percent}%)
+                </>
+              )}
               {Object.keys(preferences).length > 0 && (
                 <>
                   {" "}
@@ -329,11 +351,12 @@ export default function ChatPage() {
             </div>
           )}
 
-        {/* Błąd modelu (np. wyczerpany limit API) — z możliwością ponowienia. */}
+        {/* Błąd trasy/modelu (limit API, rate limit z W2, budżet tokenów z W3)
+            — treść wyłuskana z JSON-a, z możliwością ponowienia. */}
         {error && !isLoading && (
           <div className="row assistant">
             <div className="bubble error-bubble">
-              ⚠️ {error.message || "Coś poszło nie tak."}
+              ⚠️ {errorText(error)}
               <div className="err-actions">
                 <button
                   type="button"

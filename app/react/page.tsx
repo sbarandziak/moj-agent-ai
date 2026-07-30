@@ -7,6 +7,9 @@ import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { MAX_STEPS } from "./constants";
+import { useUser } from "../useUser";
+import { useBudget, budgetColor } from "../lib/useBudget";
+import { errorText } from "../lib/errorText";
 
 // Złożone, wielokrokowe cele — kliknięcie od razu wysyła zadanie.
 const EXAMPLES = [
@@ -111,9 +114,12 @@ function extractSources(body: string): { clean: string; sources: string[] } {
 }
 
 export default function ReactPage() {
-  const { messages, sendMessage, status, setMessages } = useChat({
+  const user = useUser(); // tożsamość z Supabase Auth — potrzebna do budżetu (W3, L10)
+  const { messages, sendMessage, status, setMessages, error, clearError } = useChat({
     transport: new DefaultChatTransport({ api: "/api/react" }),
   });
+  // Budżet tokenów: licznik w panelu diagnostyki + odświeżanie po każdej turze.
+  const { budget, refresh: refreshBudget } = useBudget(user.id);
   const [input, setInput] = useState("");
   const [model, setModel] = useState<ModelKey>("flash");
   const [contextOpen, setContextOpen] = useState(true);
@@ -151,6 +157,16 @@ export default function ReactPage() {
       setElapsed((Date.now() - startRef.current) / 1000);
       startRef.current = null;
     }
+  }, [isLoading]);
+
+  // Po zakończonym zadaniu odśwież licznik budżetu (W3, L10). Drugi strzał po
+  // chwili, bo zapis usage leci na serwerze tuż PO zamknięciu streamu.
+  useEffect(() => {
+    if (isLoading) return;
+    refreshBudget();
+    const retry = setTimeout(refreshBudget, 1500);
+    return () => clearTimeout(retry);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoading]);
 
   function textOf(message: (typeof messages)[number]) {
@@ -236,7 +252,8 @@ export default function ReactPage() {
     if (isLoading || !t) return;
     startRef.current = null;
     setElapsed(0);
-    sendMessage({ text: t }, { body: { model } });
+    // userId → trasa /api/react sprawdza dzienny budżet tokenów (W3, L10).
+    sendMessage({ text: t }, { body: { model, userId: user.id } });
     setInput("");
   }
 
@@ -374,6 +391,20 @@ export default function ReactPage() {
           </div>
         )}
 
+        {/* Błąd trasy/modelu — m.in. wyczerpany dzienny budżet tokenów (W3, L10). */}
+        {error && !isLoading && (
+          <div className="row assistant">
+            <div className="bubble error-bubble">
+              ⚠️ {errorText(error)}
+              <div className="err-actions">
+                <button type="button" className="ctx-btn" onClick={() => clearError()}>
+                  ✖️ Zamknij
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div ref={endRef} />
       </div>
 
@@ -417,6 +448,20 @@ export default function ReactPage() {
             <span className="diag-label">Czas</span>
             <span className="diag-value">{elapsed.toFixed(1)}s</span>
           </div>
+
+          {/* Budżet tokenów na dziś (W3, L10) — z tabeli api_usage. */}
+          {budget && (
+            <div className="diag-row">
+              <span className="diag-label">🔋 Budżet</span>
+              <span
+                className="diag-value"
+                style={{ color: budgetColor(budget.percent) }}
+              >
+                {budget.used.toLocaleString("pl-PL")}/
+                {budget.limit.toLocaleString("pl-PL")} tokenów ({budget.percent}%)
+              </span>
+            </div>
+          )}
 
           <div className={`diag-status ${barColor}`}>{status_}</div>
         </div>

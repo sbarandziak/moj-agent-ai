@@ -6,6 +6,7 @@ import {
   type UIMessage,
 } from "ai";
 import { reactTools } from "./tools";
+import { checkBudget, budgetExceededResponse, logUsage } from "@/lib/budget";
 
 // Pętla ReAct bywa wieloetapowa (kilka wywołań narzędzi) — dajemy więcej czasu.
 export const maxDuration = 60;
@@ -107,8 +108,20 @@ PRIORYTET NARZĘDZI:
 - Jeśli po 3 nieudanych próbach nie masz danych — powiedz wprost czego brakuje.`;
 
 export async function POST(req: Request) {
-  const { messages, model }: { messages: UIMessage[]; model?: "flash" | "pro" } =
+  const {
+    messages,
+    model,
+    userId,
+  }: { messages: UIMessage[]; model?: "flash" | "pro"; userId?: string } =
     await req.json();
+
+  // ========== W3 (L10): Budżet tokenów — sprawdzamy PRZED wywołaniem modelu ==========
+  // Pętla ReAct potrafi zrobić kilka wywołań LLM na jedno zadanie, więc to
+  // najdroższa trasa w aplikacji — tym bardziej musi podlegać limitowi.
+  const budget = await checkBudget(userId);
+  if (!budget.allowed) {
+    return budgetExceededResponse(budget);
+  }
 
   // Flash = najtańszy (W0), Pro = zaawansowany (mocniejsze rozumowanie, wolniejszy).
   const modelId = model === "pro" ? "gemini-3.1-pro-preview" : "gemini-3.1-flash-lite";
@@ -126,6 +139,16 @@ export async function POST(req: Request) {
     },
     // Ochrona przed pętlami: twardy limit kroków agenta (W0).
     stopWhen: stepCountIs(maxSteps),
+    // ===== W3 (L10): zużycie zsumowane po WSZYSTKICH krokach pętli ReAct =====
+    onFinish: async ({ usage }) => {
+      await logUsage({
+        userId,
+        tokensInput: usage.inputTokens,
+        tokensOutput: usage.outputTokens,
+        model: modelId,
+        endpoint: "/api/react",
+      });
+    },
   });
 
   return result.toUIMessageStreamResponse({ sendSources: true });

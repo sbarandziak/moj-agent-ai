@@ -102,3 +102,23 @@ begin
   limit match_count;
 end;
 $$;
+
+-- ============================================================
+-- Lekcja 10, Warsztat 3: Budżet tokenów (tabela `api_usage`)
+-- ------------------------------------------------------------
+-- Pełna wersja (z indeksami i RLS) jest w supabase/api_usage.sql —
+-- tutaj tylko dla kompletu schematu.
+-- ============================================================
+
+create table if not exists public.api_usage (
+  id            uuid        primary key default gen_random_uuid(),
+  user_id       uuid,                              -- null = wywołanie systemowe (cron)
+  created_at    timestamptz not null default now(),
+  tokens_input  integer     not null default 0,
+  tokens_output integer     not null default 0,
+  model         text        not null default 'unknown',
+  endpoint      text        not null default 'unknown'
+);
+
+create index if not exists api_usage_user_created_idx
+  on public.api_usage (user_id, created_at desc);

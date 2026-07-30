@@ -4,6 +4,7 @@ import { generateText } from "ai";
 // (bez użytkownika) zbiera pogodę i kursy walut.
 import { getWeather, getExchangeRate } from "@/app/api/react/tools";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { logUsage } from "@/lib/budget";
 
 // Zbieranie danych z 3 API + generowanie briefingu — dajemy zapas czasu.
 export const maxDuration = 30;
@@ -85,10 +86,21 @@ Data: ${plDate} (${isoDate})
 
 Napisz na ich podstawie poranny briefing.`;
 
-    const { text } = await generateText({
+    const { text, usage } = await generateText({
       model: google("gemini-3.1-flash-lite"),
       system: SYSTEM,
       prompt: dataBlock,
+    });
+
+    // W3 (L10): cron też kosztuje — logujemy go bez user_id (wywołanie
+    // systemowe). Limit dzienny go nie dotyczy: nie ma właściciela, a i tak
+    // odpala się raz dziennie.
+    await logUsage({
+      userId: null,
+      tokensInput: usage.inputTokens,
+      tokensOutput: usage.outputTokens,
+      model: "gemini-3.1-flash-lite",
+      endpoint: "/api/cron/morning",
     });
 
     // 5. Zapisz w Supabase (klient service_role — omija RLS, bo cron nie ma sesji).
