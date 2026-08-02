@@ -53,7 +53,7 @@ export default function Nav() {
                 ) : (
                   <button
                     type="button"
-                    className="rail-btn"
+                    className="rail-btn has-more"
                     aria-current={active ? "true" : undefined}
                     aria-expanded={open === group.label}
                     aria-label={group.label}

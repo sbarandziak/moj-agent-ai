@@ -142,12 +142,13 @@ button {
   padding: 14px 0;
 }
 
-/* Pływająca "pigułka" z przyciskami — sygnaturowy element układu. */
+/* Pływająca "pigułka" z przyciskami — sygnaturowy element układu.
+   UWAGA: żadnego overflow tutaj. Ustawienie overflow na jednej osi wymusza
+   `auto` na drugiej (spec CSS), co przycinałoby wysuwane menu grup i czyniło
+   podstrony nieosiągalnymi. Wysokość mieści się dzięki regułom @media niżej. */
 .rail-card {
   margin: auto 8px;
-  max-height: 100%;
-  overflow-y: auto;
-  overflow-x: visible;
+  overflow: visible;
   background: var(--card);
   border: 1px solid var(--line);
   border-radius: 18px;
@@ -156,11 +157,36 @@ button {
   flex-direction: column;
   gap: 2px;
   box-shadow: var(--shadow-sm);
-  scrollbar-width: none;
 }
 
-.rail-card::-webkit-scrollbar {
-  display: none;
+/* Niskie okno (laptop 768p, otwarte devtools) — zwężamy rytm rail-a,
+   zamiast go scrollować. */
+@media (min-width: 821px) and (max-height: 760px) {
+  .rail-card {
+    gap: 0;
+    padding: 5px 6px;
+  }
+
+  .rail-btn {
+    width: 40px;
+    height: 36px;
+  }
+
+  .rail-sep {
+    margin: 3px 8px;
+  }
+}
+
+@media (min-width: 821px) and (max-height: 620px) {
+  .rail-btn {
+    width: 38px;
+    height: 30px;
+  }
+
+  .rail-btn svg {
+    width: 17px;
+    height: 17px;
+  }
 }
 
 /* Opakowanie grupy istnieje tylko po to, by trzymać separator razem
@@ -175,6 +201,7 @@ button {
 }
 
 .rail-btn {
+  position: relative;
   width: 42px;
   height: 42px;
   border: 0;
@@ -185,6 +212,19 @@ button {
   color: var(--muted);
   cursor: pointer;
   transition: background 0.15s ease, color 0.15s ease;
+}
+
+/* Kropka = grupa ma więcej niż jedną stronę (klik rozwija listę). */
+.rail-btn.has-more::after {
+  content: "";
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.55;
 }
 
 .rail-btn:hover {
@@ -443,27 +483,44 @@ button {
     margin: 6px 4px;
   }
 
-  /* Dymek wychodzi w górę, nad pasek. */
+  /* Pasek scrolluje się w poziomie, więc menu NIE może być w nim pozycjonowane
+     absolutnie (zostałoby przycięte). Otwarta grupa wychodzi jako panel
+     przyklejony nad paskiem — position:fixed omija przycinanie. */
   .rail-flyout {
-    left: 50%;
+    position: fixed;
+    left: 10px;
+    right: 10px;
     top: auto;
-    bottom: calc(100% + 12px);
-    transform: translateX(-50%) translateY(5px);
+    bottom: 62px;
+    min-width: 0;
+    transform: translateY(6px);
+    z-index: 90;
   }
 
   .rail-flyout::before {
-    right: auto;
-    left: 50%;
-    top: 100%;
-    transform: translateX(-50%);
-    border-right-color: transparent;
-    border-top-color: var(--ink);
+    display: none;
   }
 
   .rail-group:hover .rail-flyout,
-  .rail-group:focus-within .rail-flyout,
+  .rail-group:focus-within .rail-flyout {
+    opacity: 0;
+    pointer-events: none;
+  }
+
   .rail-flyout.open {
-    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+  }
+
+  /* Podpowiedzi hoverowe nie mają sensu na dotyku. */
+  .rail-flyout.tip-only {
+    display: none;
+  }
+
+  .rail-flyout-link {
+    padding: 10px 10px;
+    font-size: 14px;
   }
 
   .shell-main {
