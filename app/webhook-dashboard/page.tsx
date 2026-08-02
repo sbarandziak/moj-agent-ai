@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 type WebhookEvent = {
   id: string;
@@ -10,18 +10,21 @@ type WebhookEvent = {
   analysis: string;
 };
 
+type Filter = "all" | "feedback" | "alert" | "order";
+
+// Kolor kropki przy typie zdarzenia (akcenty z systemu wizualnego).
+const TYPE_DOT: Record<WebhookEvent["type"], string> = {
+  feedback: "var(--dot-ops)",
+  alert: "var(--dot-sales)",
+  order: "var(--dot-fin)",
+};
+
 export default function WebhookDashboard() {
   const [events, setEvents] = useState<WebhookEvent[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<"all" | "feedback" | "alert" | "order">(
-    "all"
-  );
+  const [filter, setFilter] = useState<Filter>("all");
 
-  useEffect(() => {
-    loadEvents();
-  }, [filter]);
-
-  async function loadEvents() {
+  const loadEvents = useCallback(async () => {
     setLoading(true);
     try {
       // Pobierz dane bezpośrednio z Supabase (public read access)
@@ -44,159 +47,99 @@ export default function WebhookDashboard() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [filter]);
+
+  useEffect(() => {
+    loadEvents();
+  }, [loadEvents]);
 
   return (
-    <div style={{ padding: "20px", fontFamily: "Arial, sans-serif" }}>
-      <h1>📊 Webhook Events Dashboard</h1>
+    <div className="rp">
+      <div className="rp-header">
+        <h1>Webhook Events</h1>
+        <p className="rp-sub">Zdarzenia przyjęte przez /api/webhook wraz z analizą agenta</p>
+      </div>
 
-      <div style={{ marginBottom: "20px" }}>
-        <label style={{ marginRight: "10px" }}>Filter by type: </label>
+      <div className="rp-actions" style={{ marginTop: 0 }}>
+        <label className="rp-sub" htmlFor="wh-filter">
+          Typ zdarzenia
+        </label>
         <select
+          id="wh-filter"
+          className="rp-select"
           value={filter}
-          onChange={(e) =>
-            setFilter(e.target.value as "all" | "feedback" | "alert" | "order")
-          }
+          onChange={(e) => setFilter(e.target.value as Filter)}
         >
-          <option value="all">All Events</option>
+          <option value="all">Wszystkie</option>
           <option value="feedback">Feedback</option>
           <option value="alert">Alert</option>
           <option value="order">Order</option>
         </select>
-        <button onClick={loadEvents} style={{ marginLeft: "10px" }}>
-          Refresh
+        <button type="button" className="rp-btn" onClick={loadEvents} disabled={loading}>
+          🔄 Odśwież
         </button>
+        {!loading && events.length > 0 && (
+          <span className="rp-sub" style={{ marginLeft: "auto" }}>
+            Zdarzeń: <b>{events.length}</b>
+          </span>
+        )}
       </div>
 
       {loading ? (
-        <p>Loading...</p>
+        <div className="skeleton-wrap" style={{ marginTop: 20 }}>
+          <div className="skeleton-line" style={{ width: "80%" }} />
+          <div className="skeleton-line" style={{ width: "60%" }} />
+        </div>
       ) : events.length === 0 ? (
-        <p style={{ color: "#666" }}>No events found. Send a webhook test!</p>
+        <div className="rp-empty">
+          Brak zdarzeń. Wyślij testowy webhook (instrukcja niżej).
+        </div>
       ) : (
-        <div>
-          <p style={{ color: "#666" }}>
-            Found <strong>{events.length}</strong> event(s)
-          </p>
+        <div className="et-cards" style={{ marginTop: 18 }}>
           {events.map((event) => (
-            <div
-              key={event.id}
-              style={{
-                border: "1px solid #ddd",
-                borderRadius: "8px",
-                padding: "15px",
-                marginBottom: "15px",
-                backgroundColor:
-                  event.type === "feedback"
-                    ? "#f0f8ff"
-                    : event.type === "alert"
-                      ? "#ffe0e0"
-                      : "#f0f0f0",
-              }}
-            >
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <div>
-                  <span
-                    style={{
-                      display: "inline-block",
-                      padding: "4px 8px",
-                      borderRadius: "4px",
-                      fontSize: "12px",
-                      fontWeight: "bold",
-                      backgroundColor:
-                        event.type === "feedback"
-                          ? "#007bff"
-                          : event.type === "alert"
-                            ? "#dc3545"
-                            : "#6c757d",
-                      color: "white",
-                      marginRight: "10px",
-                    }}
-                  >
-                    {event.type.toUpperCase()}
-                  </span>
-                  <span style={{ fontSize: "12px", color: "#666" }}>
-                    {new Date(event.created_at).toLocaleString()}
-                  </span>
-                </div>
-                <code style={{ fontSize: "11px", color: "#666" }}>
-                  {event.id.slice(0, 8)}...
+            <div key={event.id} className="et-card">
+              <div className="et-card-head">
+                <span className="tag">
+                  <i style={{ background: TYPE_DOT[event.type] }} />
+                  {event.type.toUpperCase()}
+                </span>
+                <span className="conv-meta" style={{ margin: 0 }}>
+                  {new Date(event.created_at).toLocaleString("pl-PL")}
+                </span>
+                <code className="eyebrow" style={{ marginLeft: "auto" }}>
+                  {event.id.slice(0, 8)}
                 </code>
               </div>
 
-              <div style={{ marginTop: "10px" }}>
-                <strong>Data:</strong>
-                <pre
-                  style={{
-                    backgroundColor: "#f5f5f5",
-                    padding: "10px",
-                    borderRadius: "4px",
-                    fontSize: "12px",
-                    overflow: "auto",
-                    marginTop: "5px",
-                  }}
-                >
-                  {JSON.stringify(event.data, null, 2)}
-                </pre>
-              </div>
+              <div className="et-draft-head">Dane</div>
+              <pre className="wh-pre">{JSON.stringify(event.data, null, 2)}</pre>
 
-              <div style={{ marginTop: "10px" }}>
-                <strong>Analysis (Agent):</strong>
-                <pre
-                  style={{
-                    backgroundColor: "#f9f9f9",
-                    padding: "10px",
-                    borderRadius: "4px",
-                    fontSize: "12px",
-                    overflow: "auto",
-                    marginTop: "5px",
-                    whiteSpace: "pre-wrap",
-                    wordBreak: "break-word",
-                  }}
-                >
-                  {event.analysis}
-                </pre>
+              <div className="et-draft-head" style={{ marginTop: 12 }}>
+                Analiza agenta
               </div>
+              <pre className="wh-pre wrap">{event.analysis}</pre>
             </div>
           ))}
         </div>
       )}
 
-      <hr style={{ margin: "30px 0" }} />
-
-      <h2>🧪 Quick Test</h2>
-      <p>Run this in DevTools Console to send a test webhook:</p>
-
-      <div style={{ backgroundColor: "#f5f5f5", padding: "10px", borderRadius: "4px" }}>
-        <code style={{ fontSize: "12px", fontFamily: "monospace" }}>
-          fetch('/api/webhook', {"{"}
-          <br />
-          &nbsp;&nbsp;method: 'POST',
-          <br />
-          &nbsp;&nbsp;headers: {"{"}
-          'Content-Type': 'application/json' {"}"},
-          <br />
-          &nbsp;&nbsp;body: JSON.stringify({"{"}
-          <br />
-          &nbsp;&nbsp;&nbsp;&nbsp;type: 'feedback',
-          <br />
-          &nbsp;&nbsp;&nbsp;&nbsp;data: {"{"}
-          <br />
-          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;customer: 'Test User',
-          <br />
-          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rating: 4,
-          <br />
-          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;comment: 'Great service!'
-          <br />
-          &nbsp;&nbsp;&nbsp;&nbsp;{"}"}
-          <br />
-          &nbsp;&nbsp;{"}"})<br />
-          {"}"}).then(r =&gt; r.json()).then(console.log)
-        </code>
+      <div className="rp-saved">
+        <div className="rp-saved-title">🧪 Szybki test</div>
+        <p className="rp-sub" style={{ marginBottom: 10 }}>
+          Wklej w konsoli DevTools, żeby wysłać przykładowe zdarzenie:
+        </p>
+        <pre className="wh-pre">{`fetch('/api/webhook', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    type: 'feedback',
+    data: { customer: 'Test User', rating: 4, comment: 'Great service!' }
+  })
+}).then(r => r.json()).then(console.log)`}</pre>
+        <p className="rp-sub" style={{ marginTop: 10 }}>
+          Potem kliknij „Odśwież”, żeby zobaczyć nowe zdarzenie.
+        </p>
       </div>
-
-      <p style={{ marginTop: "10px", fontSize: "12px", color: "#666" }}>
-        Then refresh this page to see the new event.
-      </p>
     </div>
   );
 }

@@ -159,7 +159,7 @@ export default function SecurityPage() {
                 <div className="sec-stat">
                   <span
                     className="sec-stat-value"
-                    style={{ color: data.stats.blockedToday > 0 ? "#dc2626" : undefined }}
+                    style={{ color: data.stats.blockedToday > 0 ? "var(--err)" : undefined }}
                   >
                     {num(data.stats.blockedToday)}
                   </span>

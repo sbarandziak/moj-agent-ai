@@ -18,6 +18,7 @@ import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import { UserContext } from "./useUser";
 import Nav from "./nav";
+import Topbar from "./topbar";
 
 export default function AuthGate({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -64,11 +65,15 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
   }
 
   // Zalogowany: pełny układ + kontekst użytkownika dla stron.
+  // Rail (ikony) z lewej, nad treścią topbar z okruszkiem i kontem.
   return (
     <UserContext.Provider value={user}>
       <div className="shell">
         <Nav />
-        <main className="main">{children}</main>
+        <div className="shell-main">
+          <Topbar />
+          <main className="main">{children}</main>
+        </div>
       </div>
     </UserContext.Provider>
   );

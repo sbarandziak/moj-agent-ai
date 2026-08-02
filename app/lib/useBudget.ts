@@ -45,7 +45,7 @@ export function useBudget(userId: string | null | undefined) {
 // Kolor paska/licznika: zielony do 60%, żółty do 80%, czerwony wyżej
 // (80% to próg alertu z W4).
 export function budgetColor(percent: number): string {
-  if (percent >= 80) return "#dc2626";
-  if (percent >= 60) return "#d97706";
-  return "#16a34a";
+  if (percent >= 80) return "var(--err)";
+  if (percent >= 60) return "var(--warn)";
+  return "var(--ok)";
 }

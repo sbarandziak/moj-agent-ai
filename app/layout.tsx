@@ -15,8 +15,18 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pl">
+      <head>
+        {/* Fonty systemu wizualnego: Instrument Sans (tekst) + JetBrains Mono
+            (liczby, plakietki .eyebrow). Ładowane z CDN — bez kroku build-time. */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
+          rel="stylesheet"
+        />
+      </head>
       <body>
-        {/* AuthGate decyduje: /login samodzielnie, reszta = sidebar + treść
+        {/* AuthGate decyduje: /login samodzielnie, reszta = rail + topbar + treść
             (tylko dla zalogowanych; niezalogowany -> redirect na /login). */}
         <AuthGate>{children}</AuthGate>
       </body>

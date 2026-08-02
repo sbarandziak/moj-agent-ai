@@ -1,102 +1,98 @@
 "use client";
 
+// ============================================================
+// Rail: pionowy pasek ikon (na telefonie — poziomy, na dole).
+// Grupa z jedną stroną = link + dymek z podpowiedzią.
+// Grupa z wieloma stronami = przycisk otwierający menu
+// (hover na desktopie, klik wszędzie).
+// ============================================================
+
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
-import { supabase } from "@/lib/supabase";
-import { useUser } from "./useUser";
-
-// Dashboard (🏠) na górze; dalej czat i pozostałe narzędzia agenta.
-const LINKS = [
-  { href: "/", icon: "🏠", label: "Dashboard" },
-  { href: "/chat", icon: "💬", label: "Chat" },
-  { href: "/history", icon: "📜", label: "Historia" },
-  { href: "/briefings", icon: "📰", label: "Briefingi" },
-  { href: "/upload", icon: "📤", label: "Dodaj wiedzę" },
-  { href: "/knowledge", icon: "🔎", label: "Baza wiedzy" },
-  { href: "/think", icon: "🧠", label: "Myślenie" },
-  { href: "/fewshot", icon: "📚", label: "Słownik" },
-  { href: "/format", icon: "📐", label: "Formater" },
-  { href: "/email", icon: "✉️", label: "E-mail" },
-  { href: "/email-triage", icon: "📧", label: "E-mail Triage" },
-  { href: "/report", icon: "📊", label: "Raporty" },
-  { href: "/competitor", icon: "🏢", label: "Konkurencja" },
-  { href: "/summarize", icon: "📖", label: "Streszczacz" },
-  { href: "/search", icon: "🌐", label: "Szukaj" },
-  { href: "/generate", icon: "🎨", label: "Grafiki" },
-  { href: "/vision", icon: "👁️", label: "Vision" },
-  { href: "/react", icon: "🔄", label: "ReAct" },
-  { href: "/travel", icon: "✈️", label: "Podróże" },
-  { href: "/admin/security", icon: "🛡️", label: "Bezpieczeństwo" },
-];
+import { useEffect, useRef, useState } from "react";
+import { NAV_GROUPS, isActive } from "./nav-items";
 
 export default function Nav() {
   const pathname = usePathname();
-  const [open, setOpen] = useState(false);
-  const user = useUser();
+  const [open, setOpen] = useState<string | null>(null);
+  const railRef = useRef<HTMLElement>(null);
 
-  // Wyloguj: kasuje sesję. AuthGate wykryje brak sesji i przekieruje na /login.
-  async function handleLogout() {
-    setOpen(false);
-    await supabase.auth.signOut();
-  }
+  // Zmiana strony zamyka menu.
+  useEffect(() => setOpen(null), [pathname]);
+
+  // Klik poza railem zamyka menu (istotne na dotyku, gdzie nie ma hovera).
+  useEffect(() => {
+    if (!open) return;
+    function onDown(e: MouseEvent) {
+      if (!railRef.current?.contains(e.target as Node)) setOpen(null);
+    }
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [open]);
 
   return (
-    <>
-      {/* Pasek górny z hamburgerem — widoczny tylko na telefonie. */}
-      <div className="mobile-bar">
-        <button
-          type="button"
-          className="hamburger"
-          onClick={() => setOpen((o) => !o)}
-          aria-label="Menu"
-        >
-          ☰
-        </button>
-        <span className="mobile-brand">🤖 Mój Agent</span>
-      </div>
+    <aside className="rail" ref={railRef}>
+      <nav className="rail-card" aria-label="Nawigacja główna">
+        {NAV_GROUPS.map((group) => {
+          const active = group.items.some((i) => isActive(pathname, i.href));
+          const single = group.items.length === 1;
 
-      {/* Przyciemnienie tła, gdy menu jest otwarte (mobile). */}
-      {open && <div className="sidebar-overlay" onClick={() => setOpen(false)} />}
+          return (
+            <div key={group.label} className="rail-item">
+              {group.separatorBefore && <div className="rail-sep" />}
+              <div className="rail-group">
+                {single ? (
+                  <Link
+                    href={group.items[0].href}
+                    className="rail-btn"
+                    aria-current={active ? "true" : undefined}
+                    aria-label={group.label}
+                  >
+                    {group.icon}
+                  </Link>
+                ) : (
+                  <button
+                    type="button"
+                    className="rail-btn"
+                    aria-current={active ? "true" : undefined}
+                    aria-expanded={open === group.label}
+                    aria-label={group.label}
+                    onClick={() =>
+                      setOpen((o) => (o === group.label ? null : group.label))
+                    }
+                  >
+                    {group.icon}
+                  </button>
+                )}
 
-      <aside className={`sidebar ${open ? "open" : ""}`}>
-        <div className="sidebar-brand">🤖 Mój Agent</div>
-        <nav className="sidebar-nav">
-          {LINKS.map((l) => {
-            // Dopasowanie po całym segmencie ścieżki — inaczej /email-triage
-            // podświetlałoby również zakładkę /email.
-            const active =
-              l.href === "/"
-                ? pathname === "/"
-                : pathname === l.href || pathname.startsWith(l.href + "/");
-            return (
-              <Link
-                key={l.href}
-                href={l.href}
-                className={`side-link ${active ? "active" : ""}`}
-                onClick={() => setOpen(false)}
-              >
-                <span className="side-icon">{l.icon}</span>
-                <span className="side-label">{l.label}</span>
-              </Link>
-            );
-          })}
-        </nav>
-
-        {/* Stopka: zalogowany użytkownik + wylogowanie (W3). */}
-        <div className="sidebar-user">
-          <span className="sidebar-email" title={user.email}>
-            👤 {user.email}
-          </span>
-          <button
-            type="button"
-            className="sidebar-logout"
-            onClick={handleLogout}
-          >
-            🚪 Wyloguj
-          </button>
-        </div>
-      </aside>
-    </>
+                {single ? (
+                  <span className="rail-flyout tip-only" role="tooltip">
+                    {group.label}
+                  </span>
+                ) : (
+                  <div
+                    className={`rail-flyout ${open === group.label ? "open" : ""}`}
+                  >
+                    <span className="rail-flyout-title">{group.label}</span>
+                    {group.items.map((item) => (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        className={`rail-flyout-link ${
+                          isActive(pathname, item.href) ? "active" : ""
+                        }`}
+                        onClick={() => setOpen(null)}
+                      >
+                        {item.label}
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </nav>
+    </aside>
   );
 }

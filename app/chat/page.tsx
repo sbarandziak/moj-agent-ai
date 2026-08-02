@@ -1,7 +1,7 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useImageAttachment } from "../lib/useImageAttachment";
 import { useBudget, budgetColor } from "../lib/useBudget";
 import { errorText } from "../lib/errorText";
@@ -20,18 +20,104 @@ import {
 
 type ModelKey = "flash" | "pro";
 
-const MODELS: { id: ModelKey; label: string; emoji: string; hint: string }[] = [
-  { id: "flash", label: "Flash", emoji: "⚡", hint: "szybki" },
-  { id: "pro", label: "Pro", emoji: "🧠", hint: "zaawansowany" },
+const MODELS: { id: ModelKey; label: string; hint: string }[] = [
+  { id: "flash", label: "szybki", hint: "Flash — krótkie pytania" },
+  { id: "pro", label: "zaawansowany", hint: "Pro — analiza i liczenie" },
 ];
 
-// Przykładowe pytania startowe z dziedziny agenta.
-const EXAMPLES = [
-  "Ile wynosi PCC przy zakupie mieszkania z rynku wtórnego?",
-  "Jaki wkład własny potrzebuję do kredytu hipotecznego?",
-  "Na co zwrócić uwagę w księdze wieczystej?",
-  "Rynek pierwotny czy wtórny — co bardziej się opłaca?",
+// Miasto paska danych (to samo co dashboard).
+const CITY = "Warszawa";
+
+// Gotowce startowe z dziedziny agentki. Klik = wysłanie pełnego pytania.
+const STARTERS: { title: string; desc: string; prompt: string; icon: React.ReactNode }[] = [
+  {
+    title: "Policz koszty zakupu",
+    desc: "PCC, taksa notarialna, prowizje",
+    prompt:
+      "Policz wszystkie koszty zakupu mieszkania za 600 000 zł z rynku wtórnego — PCC, taksa notarialna, wpisy do KW, prowizja pośrednika.",
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />
+      </svg>
+    ),
+  },
+  {
+    title: "Porównaj kredyty",
+    desc: "Rata, RRSO, wkład własny",
+    prompt:
+      "Jaki wkład własny potrzebuję do kredytu hipotecznego i jak zmienia się rata przy 10%, 20% i 30% wkładu?",
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 3v18M5 8l7-5 7 5v8l-7 5-7-5Z" />
+      </svg>
+    ),
+  },
+  {
+    title: "Streść dokument",
+    desc: "Umowa, protokół — wnioski i ryzyka",
+    prompt:
+      "Zaraz wkleję umowę deweloperską. Streść ją i wypisz ryzyka oraz zapisy, które warto negocjować.",
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z" />
+        <path d="M14 3v5h5" />
+        <path d="M9 13h6M9 17h4" />
+      </svg>
+    ),
+  },
+  {
+    title: "Sprawdź księgę wieczystą",
+    desc: "Na co uważać przed zakupem",
+    prompt: "Na co zwrócić uwagę w księdze wieczystej przed zakupem mieszkania? Wypisz dział po dziale.",
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4 19V5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2Z" />
+        <path d="M8 7h7M8 11h7" />
+      </svg>
+    ),
+  },
+  {
+    title: "Rynek pierwotny czy wtórny",
+    desc: "Porównanie kosztów i ryzyk",
+    prompt: "Rynek pierwotny czy wtórny — co bardziej się opłaca? Porównaj koszty, terminy i ryzyka.",
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M3 21V9l6-4 6 4v12" />
+        <path d="M15 21V13l6 3v5M3 21h18" />
+      </svg>
+    ),
+  },
+  {
+    title: "Przygotuj ofertę sprzedaży",
+    desc: "Opis mieszkania gotowy do publikacji",
+    prompt:
+      "Napisz ogłoszenie sprzedaży mieszkania 48 m², 2 pokoje, 3. piętro z windą, po remoncie, blisko szkoły i przystanku.",
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4 6h16M4 11h16M4 16h10M4 21h7" />
+      </svg>
+    ),
+  },
 ];
+
+// --- Typy paska danych (/api/dashboard) ---
+type Rate = { code: string; mid?: number; change?: number; error?: boolean };
+type StripData = {
+  weather: { city: string; temperature: number; emoji: string } | { error: string };
+  rates: Rate[];
+  holidays: { upcoming: { date: string; name: string }[]; nextInDays: number | null } | { error: string };
+};
+
+function hasError<T extends object>(v: T): v is T & { error: string } {
+  return typeof v === "object" && v !== null && "error" in v;
+}
+
+function shortDate(iso: string): string {
+  return new Date(iso + "T00:00:00").toLocaleDateString("pl-PL", {
+    day: "numeric",
+    month: "short",
+  });
+}
 
 export default function ChatPage() {
   const user = useUser(); // tożsamość z Supabase Auth (W3)
@@ -39,10 +125,11 @@ export default function ChatPage() {
     useChat();
   const [input, setInput] = useState("");
   const [model, setModel] = useState<ModelKey>("flash");
-  const [contextOpen, setContextOpen] = useState(true);
+  const [contextOpen, setContextOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const att = useImageAttachment({ globalPaste: true });
   const fileRef = useRef<HTMLInputElement>(null);
+  const taRef = useRef<HTMLTextAreaElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
 
   // Trwała pamięć (Supabase).
@@ -58,12 +145,31 @@ export default function ChatPage() {
   // Budżet tokenów (W3, L10): ile z dziennego limitu zostało.
   const { budget, refresh: refreshBudget } = useBudget(user.id);
 
+  // Pasek na żywo + zegar w nagłówku ekranu startowego. Liczone po stronie
+  // klienta (w useEffect), żeby nie rozjechać hydracji.
+  const [strip, setStrip] = useState<StripData | null>(null);
+  const [now, setNow] = useState<string | null>(null);
+
   // Auto-scroll do ostatniej wiadomości.
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, status]);
 
   const isLoading = status === "submitted" || status === "streaming";
+
+  useEffect(() => {
+    const d = new Date();
+    const day = d.toLocaleDateString("pl-PL", { weekday: "long", day: "numeric", month: "long" });
+    const time = d.toLocaleTimeString("pl-PL", { hour: "2-digit", minute: "2-digit" });
+    setNow(`${day.charAt(0).toUpperCase()}${day.slice(1)} · ${time}`);
+
+    fetch(`/api/dashboard?city=${encodeURIComponent(CITY)}`, { cache: "no-store" })
+      .then((r) => r.json())
+      .then((json: StripData) => setStrip(json))
+      .catch(() => {
+        /* pasek jest dodatkiem — brak danych po prostu go ukrywa */
+      });
+  }, []);
 
   // Przy starcie: wczytaj profil zalogowanego użytkownika (auth.uid()).
   useEffect(() => {
@@ -176,26 +282,44 @@ export default function ChatPage() {
   const tokenEstimate = Math.ceil(totalChars / 4);
 
   // Wysyła dowolny tekst z aktywnym modelem (opcjonalnie z załączonym obrazem).
-  function send(text: string) {
-    const t = text.trim();
-    if (isLoading) return;
-    if (!t && !att.image) return;
+  const send = useCallback(
+    (text: string) => {
+      const t = text.trim();
+      if (isLoading) return;
+      if (!t && !att.image) return;
 
-    const files = att.image
-      ? [{ type: "file" as const, mediaType: att.image.mediaType, url: att.image.dataUrl }]
-      : undefined;
+      const files = att.image
+        ? [{ type: "file" as const, mediaType: att.image.mediaType, url: att.image.dataUrl }]
+        : undefined;
 
-    sendMessage(
-      files ? { text: t || "Co widzisz na tym obrazie?", files } : { text: t },
-      { body: { model, userId: userIdRef.current, userName, preferences } }
-    );
-    setInput("");
-    att.clear();
-  }
+      sendMessage(
+        files ? { text: t || "Co widzisz na tym obrazie?", files } : { text: t },
+        { body: { model, userId: userIdRef.current, userName, preferences } }
+      );
+      setInput("");
+      att.clear();
+      if (taRef.current) taRef.current.style.height = "auto";
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [isLoading, att.image, model, userName, preferences]
+  );
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     send(input);
+  }
+
+  // Enter wysyła, Shift+Enter robi nową linię.
+  function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      send(input);
+    }
+  }
+
+  function autoGrow(el: HTMLTextAreaElement) {
+    el.style.height = "auto";
+    el.style.height = Math.min(el.scrollHeight, 180) + "px";
   }
 
   function newConversation() {
@@ -220,6 +344,9 @@ export default function ChatPage() {
     }
   }
 
+  const showHero = !loadingHistory && messages.length === 0;
+  const modelInfo = MODELS.find((m) => m.id === model)!;
+
   return (
     <div
       className="app"
@@ -228,25 +355,106 @@ export default function ChatPage() {
       onDrop={att.onDrop}
     >
       {att.dragging && <div className="drop-overlay">⬇️ Upuść obraz</div>}
-      <header className="header">
-        💬 Marta Wiśniewska
-        <div className="subtitle">
-          Ekspert od nieruchomości i kredytów hipotecznych. Zapytaj mnie o zakup,
-          sprzedaż, wynajem albo finansowanie.
-        </div>
-      </header>
 
-      {/* Panel pamięci / kontekstu rozmowy */}
-      <div className="context">
-        <button
-          type="button"
-          className="context-toggle"
-          onClick={() => setContextOpen((o) => !o)}
-        >
-          🧠 Kontekst rozmowy <span className="chev">{contextOpen ? "▲" : "▼"}</span>
-        </button>
-        {contextOpen && (
-          <div className="context-body">
+      <div className="thread">
+        {loadingHistory && (
+          <div className="from-agent thinking">⏳ Wczytuję poprzednią rozmowę…</div>
+        )}
+
+        {/* --- Ekran startowy --- */}
+        {showHero && (
+          <section>
+            <div className="hero">
+              <div className="eyebrow">{now ?? " "}</div>
+              <h1>{userName ? `Nad czym pracujemy, ${userName}?` : "Nad czym pracujemy?"}</h1>
+              <p>Napisz zadanie albo zacznij od jednego z gotowych.</p>
+            </div>
+
+            <div className="starters">
+              {STARTERS.map((s) => (
+                <button
+                  key={s.title}
+                  type="button"
+                  className="starter"
+                  onClick={() => send(s.prompt)}
+                  disabled={isLoading}
+                >
+                  {s.icon}
+                  <span>
+                    <b>{s.title}</b>
+                    <em>{s.desc}</em>
+                  </span>
+                </button>
+              ))}
+            </div>
+
+            <Strip data={strip} />
+          </section>
+        )}
+
+        {/* --- Wątek rozmowy --- */}
+        {messages.map((message) => {
+          if (message.role === "user") {
+            return (
+              <div key={message.id} className="from-user">
+                {imagesOf(message).map((src) => (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img key={src} src={src} alt="załączony obraz" className="msg-image" />
+                ))}
+                {textOf(message)}
+              </div>
+            );
+          }
+          const md = modelOf(message);
+          return (
+            <div key={message.id}>
+              <div className="agent-tag">
+                <span className="mark">
+                  <span />
+                </span>
+                <em>Marta Wiśniewska</em>
+                <span className={`badge badge-${md}`}>
+                  {md === "flash" ? "⚡ Flash" : "🧠 Pro"}
+                </span>
+              </div>
+              <div className="from-agent">{textOf(message)}</div>
+            </div>
+          );
+        })}
+
+        {isLoading && messages[messages.length - 1]?.role === "user" && (
+          <div className="from-agent thinking">Myślę…</div>
+        )}
+
+        {/* Błąd trasy/modelu (limit API, rate limit z W2, budżet tokenów z W3)
+            — treść wyłuskana z JSON-a, z możliwością ponowienia. */}
+        {error && !isLoading && (
+          <div className="from-agent">
+            <div className="res-card error-bubble">
+              ⚠️ {errorText(error)}
+              <div className="err-actions">
+                <button
+                  type="button"
+                  className="ctx-btn"
+                  onClick={() => {
+                    clearError();
+                    regenerate();
+                  }}
+                >
+                  🔄 Spróbuj ponownie
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div ref={endRef} />
+      </div>
+
+      {/* --- Panel kontekstu (chowany chipem "Kontekst") --- */}
+      {contextOpen && (
+        <div className="context">
+          <div className="context-body" style={{ paddingTop: 12 }}>
             <span className="counter">
               {userName && (
                 <>
@@ -292,103 +500,8 @@ export default function ChatPage() {
               </button>
             </div>
           </div>
-        )}
-      </div>
-
-      <div className="messages">
-        {loadingHistory && (
-          <div className="row assistant">
-            <div className="bubble thinking">⏳ Wczytuję poprzednią rozmowę…</div>
-          </div>
-        )}
-
-        {!loadingHistory && messages.length === 0 && (
-          <div className="empty">
-            <p>Cześć! Jestem Martą, Twoim doradcą nieruchomości. 🏠</p>
-            <p className="empty-hint">Kliknij przykładowe pytanie albo napisz własne:</p>
-            <div className="examples">
-              {EXAMPLES.map((q) => (
-                <button
-                  key={q}
-                  type="button"
-                  className="example-btn"
-                  onClick={() => send(q)}
-                >
-                  {q}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {messages.map((message) => {
-          const md = modelOf(message);
-          const info = MODELS.find((x) => x.id === md)!;
-          return (
-            <div key={message.id} className={`row ${message.role}`}>
-              <div className="bubble">
-                {message.role === "assistant" && (
-                  <span className={`badge badge-${md}`}>
-                    {info.emoji} {info.label}
-                  </span>
-                )}
-                {imagesOf(message).map((src) => (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img key={src} src={src} alt="załączony obraz" className="msg-image" />
-                ))}
-                {textOf(message) && (
-                  <div className="msg-text">{textOf(message)}</div>
-                )}
-              </div>
-            </div>
-          );
-        })}
-
-        {isLoading &&
-          messages[messages.length - 1]?.role === "user" && (
-            <div className="row assistant">
-              <div className="bubble thinking">Myślę…</div>
-            </div>
-          )}
-
-        {/* Błąd trasy/modelu (limit API, rate limit z W2, budżet tokenów z W3)
-            — treść wyłuskana z JSON-a, z możliwością ponowienia. */}
-        {error && !isLoading && (
-          <div className="row assistant">
-            <div className="bubble error-bubble">
-              ⚠️ {errorText(error)}
-              <div className="err-actions">
-                <button
-                  type="button"
-                  className="ctx-btn"
-                  onClick={() => {
-                    clearError();
-                    regenerate();
-                  }}
-                >
-                  🔄 Spróbuj ponownie
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        <div ref={endRef} />
-      </div>
-
-      <div className="modes">
-        {MODELS.map((mo) => (
-          <button
-            key={mo.id}
-            type="button"
-            className={`mode-btn model-${mo.id} ${model === mo.id ? "active" : ""}`}
-            onClick={() => setModel(mo.id)}
-            title={mo.hint}
-          >
-            {mo.emoji} {mo.label} <span className="model-hint">({mo.hint})</span>
-          </button>
-        ))}
-      </div>
+        </div>
+      )}
 
       {/* Podgląd załączonego obrazu (Ctrl+V / upload / drag&drop). */}
       {att.image && (
@@ -403,38 +516,129 @@ export default function ChatPage() {
       )}
       {att.error && <div className="attach-error">⚠️ {att.error}</div>}
 
-      <form className="form" onSubmit={handleSubmit}>
-        <input
-          ref={fileRef}
-          type="file"
-          accept="image/*"
-          hidden
-          onChange={att.onFileInput}
-        />
-        <button
-          type="button"
-          className="upload-btn"
-          onClick={() => fileRef.current?.click()}
-          title="Załącz obraz"
-        >
-          📎
-        </button>
-        <input
-          className="input"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onPaste={att.onPaste}
-          placeholder="Napisz wiadomość… (po kilku pytaniach wpisz: podsumuj)"
-          autoFocus
-        />
-        <button
-          className="send"
-          type="submit"
-          disabled={isLoading || (!input.trim() && !att.image)}
-        >
-          Wyślij
-        </button>
-      </form>
+      {/* --- Composer --- */}
+      <div className="composer-wrap">
+        <form className="composer" onSubmit={handleSubmit}>
+          <textarea
+            ref={taRef}
+            rows={2}
+            value={input}
+            onChange={(e) => {
+              setInput(e.target.value);
+              autoGrow(e.target);
+            }}
+            onKeyDown={handleKeyDown}
+            onPaste={att.onPaste}
+            placeholder="Napisz zadanie albo wklej dokument…"
+            autoFocus
+          />
+          <div className="composer-bar">
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              hidden
+              onChange={att.onFileInput}
+            />
+            <button
+              type="button"
+              className="chipbtn"
+              onClick={() => fileRef.current?.click()}
+              title="Załącz obraz"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 12.5 12.8 20.7a5 5 0 0 1-7.1-7.1l8.5-8.5a3.3 3.3 0 1 1 4.7 4.7l-8.5 8.5a1.7 1.7 0 0 1-2.4-2.4l7.8-7.8" />
+              </svg>
+              Dodaj plik
+            </button>
+            <button
+              type="button"
+              className={`chipbtn ${contextOpen ? "on" : ""}`}
+              onClick={() => setContextOpen((o) => !o)}
+              title="Pamięć rozmowy, tokeny i budżet"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 7a2 2 0 0 1 2-2h4l2 2.5h8a2 2 0 0 1 2 2V17a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z" />
+              </svg>
+              Kontekst: {messages.length} wiad.
+              {budget ? ` · ${budget.percent}% budżetu` : ""}
+            </button>
+            <button
+              type="button"
+              className="chipbtn"
+              onClick={() => setModel((m) => (m === "flash" ? "pro" : "flash"))}
+              title={modelInfo.hint}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M12 8v4l3 2" />
+              </svg>
+              Tryb: {modelInfo.label}
+            </button>
+            <button
+              className="send"
+              type="submit"
+              aria-label="Wyślij"
+              disabled={isLoading || (!input.trim() && !att.image)}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 19V5" />
+                <path d="m6 11 6-6 6 6" />
+              </svg>
+            </button>
+          </div>
+        </form>
+        <p className="hint">
+          Agent pamięta rozmowę i korzysta z bazy wiedzy. Enter wysyła, Shift+Enter to nowa linia.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/** Pasek danych na żywo pod starterami (kursy NBP, pogoda, najbliższe święto). */
+function Strip({ data }: { data: StripData | null }) {
+  if (!data) {
+    return (
+      <div className="strip">
+        <span className="strip-skeleton" />
+        <span className="strip-skeleton" />
+        <span className="strip-skeleton" />
+      </div>
+    );
+  }
+
+  const holidays = data.holidays && !hasError(data.holidays) ? data.holidays : null;
+  const next = holidays?.upcoming?.[0];
+
+  return (
+    <div className="strip">
+      {data.rates?.map((r) =>
+        r.error || r.mid === undefined ? null : (
+          <span key={r.code}>
+            {r.code} <b>{r.mid.toFixed(4)}</b>{" "}
+            <span
+              className={`delta ${
+                (r.change ?? 0) > 0 ? "up" : (r.change ?? 0) < 0 ? "down" : "flat"
+              }`}
+            >
+              {(r.change ?? 0) > 0 ? "↑" : (r.change ?? 0) < 0 ? "↓" : "→"}{" "}
+              {Math.abs(r.change ?? 0).toFixed(4)}
+            </span>
+          </span>
+        )
+      )}
+      {data.weather && !hasError(data.weather) && (
+        <span>
+          {data.weather.city} <b>{Math.round(data.weather.temperature)}°C</b>{" "}
+          {data.weather.emoji}
+        </span>
+      )}
+      {next && (
+        <span>
+          Najbliższe wolne: <b>{shortDate(next.date)}</b> ({next.name})
+        </span>
+      )}
     </div>
   );
 }
