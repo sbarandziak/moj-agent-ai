@@ -40,6 +40,11 @@
   --dot-mkt: #b08536;
   --dot-fin: #6b8f3e;
 
+  /* --- Powierzchnia "wklęsła": panele przebiegu, diagnostyka, kontekst ---
+     Zasada: proces jest wklęsły (--sunken, bez cienia), wynik wypukły
+     (--card + cień). Dzięki temu widać hierarchię bez czytania. */
+  --sunken: #faf9f6;
+
   /* --- Kształt i rytm --- */
   --radius: 14px;
   --radius-sm: 10px;
@@ -85,6 +90,21 @@ button {
   outline-offset: 2px;
   border-radius: 6px;
 }
+
+/* ------------------------------------------------------------
+   SKALA TYPOGRAFICZNA — trzymamy się jej w całej aplikacji:
+     tytuł strony    1.5rem  / 500 / -0.025em
+     tytuł sekcji    1rem    / 600 / -0.01em
+     treść           1rem    / 400
+     podpis, meta    0.8rem  / 400 / --muted
+   Nagłówki nigdy nie są bold 700 — waga 500/600 + ujemny tracking.
+   Liczby, które porównuje się wzrokiem, dostają tabular-nums.
+
+   SKALA PRZYCISKÓW (nazwy klas zostają, wygląd jest wspólny):
+     duży / główny   11px 18px / --radius-sm / 0.9rem  / 500
+     średni          9px 14px  / --radius-sm / 0.85rem / 500
+     mały            6px 12px  / --radius-sm / 0.78rem
+   ------------------------------------------------------------ */
 
 /* Drobny tekst techniczny (nagłówki sekcji, plakietki). */
 .eyebrow {
@@ -968,11 +988,12 @@ button {
    Panel kontekstu rozmowy (pamięć, tokeny, budżet)
    ============================================================ */
 
+/* Panel kontekstu rozmowy — też przebieg, nie treść. */
 .context {
   margin-top: 12px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  background: var(--card);
+  background: var(--sunken);
   overflow: hidden;
 }
 
@@ -1018,12 +1039,12 @@ button {
 }
 
 .ctx-btn {
-  padding: 7px 12px;
+  padding: 6px 12px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--line);
   background: var(--card);
   color: var(--ink-soft);
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   cursor: pointer;
   transition: border-color 0.15s ease, color 0.15s ease;
 }
@@ -1105,8 +1126,9 @@ button {
 }
 
 .tools-title {
-  font-size: 0.95rem;
+  font-size: 1rem;
   font-weight: 600;
+  letter-spacing: -0.01em;
   color: var(--ink);
   margin-bottom: 10px;
 }
@@ -1226,12 +1248,12 @@ button {
 
 .mode-btn {
   flex: 1;
-  padding: 10px 8px;
+  padding: 9px 10px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--line);
   background: var(--card);
   color: var(--muted);
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   cursor: pointer;
   transition: all 0.15s ease;
 }
@@ -1316,12 +1338,12 @@ button {
 }
 
 .copy-mini {
-  padding: 3px 10px;
-  border-radius: 8px;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--line);
   background: var(--card);
   color: var(--muted);
-  font-size: 0.72rem;
+  font-size: 0.78rem;
   cursor: pointer;
   transition: all 0.15s ease;
 }
@@ -1342,7 +1364,7 @@ button {
 .input {
   flex: 1;
   padding: 12px 16px;
-  border-radius: 12px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--line);
   background: var(--card);
   color: var(--ink);
@@ -1360,12 +1382,12 @@ button {
 }
 
 .send {
-  padding: 12px 20px;
-  border-radius: 12px;
+  padding: 11px 18px;
+  border-radius: var(--radius-sm);
   border: none;
   background: var(--ink);
   color: #fff;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   font-weight: 500;
   cursor: pointer;
   transition: opacity 0.15s ease;
@@ -1637,7 +1659,7 @@ button {
   color: var(--err);
   background: var(--err-bg);
   border: 1px solid var(--err-line);
-  border-radius: 12px;
+  border-radius: var(--radius);
   padding: 18px 20px;
   max-width: 480px;
   line-height: 1.5;
@@ -1797,6 +1819,9 @@ button {
    Agent ReAct: wywołania narzędzi + diagnostyka
    ============================================================ */
 
+/* Wywołanie narzędzia = spokojny wiersz przebiegu, a nie alert. Stan niesie
+   kolorowa krawędź z lewej, nie tło całego bloku — inaczej lista trzech
+   udanych wywołań krzyczy mocniej niż odpowiedź agenta pod nią. */
 .tool-chip {
   display: flex;
   flex-direction: column;
@@ -1804,23 +1829,24 @@ button {
   margin-bottom: 8px;
   padding: 9px 12px;
   border-radius: var(--radius-sm);
-  border: 1px solid var(--line);
-  background: var(--card);
+  border: 1px solid var(--line-soft);
+  border-left: 3px solid var(--line);
+  background: var(--sunken);
   font-size: 0.82rem;
 }
 
 .tool-chip.ok {
-  border-color: var(--ok-line);
-  background: var(--ok-bg);
+  border-left-color: var(--ok);
 }
 
 .tool-chip.pending {
-  border-color: var(--warn-line);
-  background: var(--warn-bg);
+  border-left-color: var(--warn);
 }
 
+/* Błąd jako jedyny zostaje tintowany — ma zwracać uwagę. */
 .tool-chip.error {
   border-color: var(--err-line);
+  border-left-color: var(--err);
   background: var(--err-bg);
 }
 
@@ -1843,17 +1869,20 @@ button {
   font-size: 0.8rem;
 }
 
+/* Diagnostyka to przebieg, nie wynik — powierzchnia wklęsła, bez cienia. */
 .diag {
   margin-top: 12px;
   padding: 12px 14px;
   border: 1px solid var(--line);
-  border-radius: 12px;
-  background: var(--card);
+  border-radius: var(--radius);
+  background: var(--sunken);
   font-size: 0.85rem;
 }
 
 .diag-title {
+  font-size: 1rem;
   font-weight: 600;
+  letter-spacing: -0.01em;
   color: var(--ink);
   margin-bottom: 10px;
 }
@@ -1999,7 +2028,7 @@ button {
 .travel-card {
   margin-bottom: 12px;
   padding: 4px 16px;
-  border-radius: 12px;
+  border-radius: var(--radius);
   border: 1px solid var(--line);
   background: var(--card);
 }
@@ -2184,8 +2213,9 @@ button {
 }
 
 .card-title {
-  font-size: 0.98rem;
+  font-size: 1rem;
   font-weight: 600;
+  letter-spacing: -0.01em;
   color: var(--ink);
 }
 
@@ -2406,7 +2436,7 @@ button {
 }
 
 .history-header h1 {
-  font-size: 1.6rem;
+  font-size: 1.5rem;
   font-weight: 500;
   letter-spacing: -0.025em;
 }
@@ -2420,7 +2450,7 @@ button {
   width: 100%;
   padding: 12px 14px;
   margin-bottom: 20px;
-  border-radius: 12px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--line);
   background: var(--card);
   color: var(--ink);
@@ -2445,10 +2475,11 @@ button {
 
 .history-cta {
   display: inline-block;
-  padding: 10px 18px;
-  border-radius: 12px;
+  padding: 11px 18px;
+  border-radius: var(--radius-sm);
   background: var(--ink);
   color: #fff;
+  font-size: 0.9rem;
   font-weight: 500;
   text-decoration: none;
   transition: opacity 0.15s ease;
@@ -2601,9 +2632,9 @@ button {
 .conv-back,
 .conv-continue {
   text-decoration: none;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   font-weight: 500;
-  padding: 8px 14px;
+  padding: 9px 14px;
   border-radius: var(--radius-sm);
 }
 
@@ -2660,7 +2691,7 @@ button {
 }
 
 .upload-header h1 {
-  font-size: 1.6rem;
+  font-size: 1.5rem;
   font-weight: 500;
   letter-spacing: -0.025em;
   margin: 0 0 6px;
@@ -2737,7 +2768,7 @@ button {
   border-radius: 999px;
   padding: 6px 12px;
   color: var(--ink-soft);
-  font-size: 0.82rem;
+  font-size: 0.78rem;
   cursor: pointer;
   transition: border-color 0.15s ease;
 }
@@ -2757,9 +2788,9 @@ button {
   background: var(--ink);
   border: none;
   border-radius: var(--radius-sm);
-  padding: 13px 18px;
+  padding: 11px 18px;
   color: #fff;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   font-weight: 500;
   cursor: pointer;
   transition: opacity 0.15s ease;
@@ -2823,8 +2854,9 @@ button {
 }
 
 .upload-docs-title {
-  font-size: 1.1rem;
-  font-weight: 500;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
   margin: 0 0 14px;
 }
 
@@ -2833,7 +2865,7 @@ button {
   text-align: center;
   padding: 24px;
   border: 1px dashed var(--line);
-  border-radius: 12px;
+  border-radius: var(--radius);
 }
 
 .upload-docs-list {
@@ -2848,7 +2880,7 @@ button {
   gap: 12px;
   background: var(--card);
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: var(--radius);
   padding: 14px 16px;
 }
 
@@ -2933,7 +2965,7 @@ button {
 }
 
 .knowledge-header h1 {
-  font-size: 1.6rem;
+  font-size: 1.5rem;
   font-weight: 500;
   letter-spacing: -0.025em;
   margin: 0 0 6px;
@@ -2970,8 +3002,9 @@ button {
   background: var(--ink);
   border: none;
   border-radius: var(--radius-sm);
-  padding: 0 20px;
+  padding: 0 18px;
   color: #fff;
+  font-size: 0.9rem;
   font-weight: 500;
   cursor: pointer;
   transition: opacity 0.15s ease;
@@ -3012,7 +3045,7 @@ button {
 .kn-hit {
   background: var(--card);
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: var(--radius);
   padding: 12px 14px;
 }
 
@@ -3056,8 +3089,9 @@ button {
 }
 
 .kn-docs-head h2 {
-  font-size: 1.1rem;
-  font-weight: 500;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
   margin: 0;
 }
 
@@ -3071,7 +3105,7 @@ button {
   text-align: center;
   padding: 22px;
   border: 1px dashed var(--line);
-  border-radius: 12px;
+  border-radius: var(--radius);
 }
 
 .kn-link {
@@ -3092,7 +3126,7 @@ button {
 .kn-doc {
   background: var(--card);
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: var(--radius);
   overflow: hidden;
 }
 
@@ -3262,12 +3296,12 @@ button {
 
 .login-submit {
   margin-top: 20px;
-  padding: 12px;
+  padding: 11px 18px;
   border: none;
   border-radius: var(--radius-sm);
   background: var(--ink);
   color: #fff;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   font-weight: 500;
   cursor: pointer;
   transition: opacity 0.15s ease;
@@ -3373,12 +3407,12 @@ button {
 }
 
 .et-btn {
-  padding: 10px 16px;
+  padding: 9px 14px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--line);
   background: var(--card);
   color: var(--ink-soft);
-  font-size: 0.88rem;
+  font-size: 0.85rem;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -3589,12 +3623,12 @@ button {
 
 .et-copy {
   margin-left: auto;
-  padding: 5px 10px;
-  border-radius: 8px;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--line);
   background: var(--card);
   color: var(--ink-soft);
-  font-size: 0.76rem;
+  font-size: 0.78rem;
   font-weight: 500;
   cursor: pointer;
 }
@@ -3696,12 +3730,12 @@ button {
 }
 
 .rp-btn {
-  padding: 10px 16px;
+  padding: 9px 14px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--line);
   background: var(--card);
   color: var(--ink-soft);
-  font-size: 0.88rem;
+  font-size: 0.85rem;
   font-weight: 500;
   cursor: pointer;
   white-space: nowrap;
@@ -3740,12 +3774,12 @@ button {
 }
 
 .rp-example {
-  padding: 8px 12px;
+  padding: 6px 12px;
   border-radius: 999px;
   border: 1px solid var(--line);
   background: var(--card);
   color: var(--muted);
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   cursor: pointer;
   transition: all 0.15s ease;
 }
@@ -3827,6 +3861,7 @@ button {
 .rp-saved-title {
   font-size: 1rem;
   font-weight: 600;
+  letter-spacing: -0.01em;
   margin-bottom: 10px;
 }
 
@@ -4033,6 +4068,7 @@ button {
 .sec-title {
   font-size: 1rem;
   font-weight: 600;
+  letter-spacing: -0.01em;
 }
 
 .sec-stats {
