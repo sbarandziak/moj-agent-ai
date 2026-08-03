@@ -17,6 +17,16 @@ export type NavGroup = {
   items: NavItem[];
   /** true = nad grupą rysujemy separator. */
   separatorBefore?: boolean;
+  /**
+   * true = grupa NIE ma własnej ikony w railu, tylko wpis w menu „Więcej".
+   * Rail z 12 ikonami wymagał ~650px wysokości okna i musiał się ściskać
+   * (patrz media queries przy .rail-btn w globals.css). Z tą flagą w railu
+   * zostaje 5 ikon + „Więcej", więc mieści się zawsze.
+   *
+   * Żeby przypiąć/odpiąć grupę — dodaj albo usuń tę jedną linijkę.
+   * Żadna strona nie znika: to, co ma `secondary`, jest w menu „Więcej".
+   */
+  secondary?: boolean;
 };
 
 // Wspólne atrybuty ikon (styl kreski jak w prototypie).
@@ -57,6 +67,7 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     label: "Myślenie",
     hint: "Analiza krok po kroku",
+    secondary: true,
     icon: (
       <svg {...S}>
         <path d="M9 20h6M10 17h4" />
@@ -95,6 +106,7 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     label: "E-mail",
     hint: "E-mail · E-mail Triage",
+    secondary: true,
     icon: (
       <svg {...S}>
         <path d="M3 6h18v13a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z" />
@@ -109,6 +121,7 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     label: "Raporty",
     hint: "Raporty · Briefingi",
+    secondary: true,
     icon: (
       <svg {...S}>
         <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />
@@ -122,6 +135,7 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     label: "Konkurencja",
     hint: "Rynek i ceny",
+    secondary: true,
     icon: (
       <svg {...S}>
         <path d="M3 21V9l6-4 6 4v12" />
@@ -134,6 +148,7 @@ export const NAV_GROUPS: NavGroup[] = [
     label: "Formater",
     hint: "Formater · Streszczacz",
     separatorBefore: true,
+    secondary: true,
     icon: (
       <svg {...S}>
         <path d="M4 6h16M4 11h16M4 16h10M4 21h7" />
@@ -147,6 +162,7 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     label: "Grafiki",
     hint: "Grafiki · Vision",
+    secondary: true,
     icon: (
       <svg {...S}>
         <rect x="3" y="4" width="18" height="16" rx="2" />
@@ -162,6 +178,7 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     label: "Szukaj",
     hint: "Szukaj · Podróże",
+    secondary: true,
     icon: (
       <svg {...S}>
         <circle cx="11" cy="11" r="7" />
@@ -186,6 +203,21 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [{ href: "/admin/security", label: "Bezpieczeństwo" }],
   },
 ];
+
+/** Grupy z własną ikoną w railu. */
+export const PRIMARY_GROUPS = NAV_GROUPS.filter((g) => !g.secondary);
+
+/** Grupy schowane pod jednym przyciskiem „Więcej". */
+export const SECONDARY_GROUPS = NAV_GROUPS.filter((g) => g.secondary);
+
+/** Ikona przycisku „Więcej" — wielokropek, standard dla przepełnienia. */
+export const MORE_ICON = (
+  <svg viewBox="0 0 24 24" fill="currentColor" stroke="none">
+    <circle cx="5" cy="12" r="1.6" />
+    <circle cx="12" cy="12" r="1.6" />
+    <circle cx="19" cy="12" r="1.6" />
+  </svg>
+);
 
 /** Czy ścieżka odpowiada danemu linkowi (dopasowanie po całym segmencie). */
 export function isActive(pathname: string, href: string): boolean {
