@@ -30,13 +30,15 @@ export default function Topbar() {
 
   useEffect(() => setMenuOpen(false), [pathname]);
 
+  // pointerdown zamiast mousedown — na iOS zdarzenia myszy są tylko emulowane
+  // i tapnięcie poza menu potrafi ich nie wywołać (patrz ten sam zabieg w nav.tsx).
   useEffect(() => {
     if (!menuOpen) return;
-    function onDown(e: MouseEvent) {
+    function onDown(e: PointerEvent) {
       if (!boxRef.current?.contains(e.target as Node)) setMenuOpen(false);
     }
-    document.addEventListener("mousedown", onDown);
-    return () => document.removeEventListener("mousedown", onDown);
+    document.addEventListener("pointerdown", onDown);
+    return () => document.removeEventListener("pointerdown", onDown);
   }, [menuOpen]);
 
   const current = findCurrent(pathname);

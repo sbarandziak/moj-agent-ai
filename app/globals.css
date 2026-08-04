@@ -372,9 +372,13 @@ button {
   opacity: 0.55;
 }
 
-.rail-btn:hover {
-  background: var(--line-soft);
-  color: var(--ink);
+/* Tylko dla myszy: iOS zostawia :hover na tapniętym elemencie aż do
+   następnego tapnięcia, więc na dotyku podświetlenie by się „zacinało". */
+@media (hover: hover) and (pointer: fine) {
+  .rail-btn:hover {
+    background: var(--line-soft);
+    color: var(--ink);
+  }
 }
 
 .rail-btn[aria-current="true"],
@@ -395,7 +399,9 @@ button {
   margin: 5px 8px;
 }
 
-/* Dymek / menu grupy. Na desktopie otwiera się na hover, wszędzie na klik. */
+/* Dymek / menu grupy. Na desktopie otwiera się na hover, wszędzie na klik.
+   UWAGA: otwarcie klikiem (.open) i otwarcie hoverem MUSZĄ być osobnymi
+   regułami — patrz komentarz przy @media (hover: hover) niżej. */
 .rail-flyout {
   position: absolute;
   left: calc(100% + 12px);
@@ -424,12 +430,28 @@ button {
   border-right-color: var(--ink);
 }
 
-.rail-group:hover .rail-flyout,
-.rail-group:focus-within .rail-flyout,
 .rail-flyout.open {
   opacity: 1;
   pointer-events: auto;
   transform: translateY(-50%) translateX(0);
+}
+
+/* Otwieranie hoverem TYLKO przy prawdziwym kursorze.
+   Bez tego warunku iOS psuje menu na telefonie: po tapnięciu przykleja
+   :hover do grupy, a `.rail-group:hover .rail-flyout` (0,3,0) bije
+   `.rail-flyout.open` (0,2,0) — więc świeżo otwarte menu dostawało
+   z powrotem opacity: 0 z wersji mobilnej i było nie do kliknięcia.
+   :focus-within jest tu razem z hoverem, bo na klawiaturze menu i tak
+   otwiera Enter/Spacja na przycisku (ustawia .open).
+   min-width: 821px, czyli dokładnie tam, gdzie rail jest pionowy — w wersji
+   z paskiem na dole menu ma się otwierać wyłącznie klikiem. */
+@media (hover: hover) and (pointer: fine) and (min-width: 821px) {
+  .rail-group:hover .rail-flyout,
+  .rail-group:focus-within .rail-flyout {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(-50%) translateX(0);
+  }
 }
 
 .rail-flyout-title {
@@ -674,12 +696,8 @@ button {
     display: none;
   }
 
-  .rail-group:hover .rail-flyout,
-  .rail-group:focus-within .rail-flyout {
-    opacity: 0;
-    pointer-events: none;
-  }
-
+  /* Hover nie otwiera już nic na dotyku (blokuje go @media hover wyżej),
+     więc nie ma czego zerować — zostaje samo otwarcie klikiem. */
   .rail-flyout.open {
     opacity: 1;
     pointer-events: auto;
