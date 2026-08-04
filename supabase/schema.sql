@@ -142,3 +142,12 @@ create table if not exists public.message_logs (
 
 create index if not exists message_logs_blocked_idx
   on public.message_logs (blocked, created_at desc);
+
+-- ============================================================
+-- Klucze obce do auth.users
+-- ------------------------------------------------------------
+-- Kolumny `user_id` wyżej to zwykłe uuid — baza nie wie, że wskazują
+-- właściciela, więc skasowanie konta zostawia po nim wiersze-sieroty.
+-- Dopina je (wraz ze sprzątaniem istniejących sierot i regułami
+-- ON DELETE) osobny plik: supabase/foreign_keys.sql.
+-- ============================================================
