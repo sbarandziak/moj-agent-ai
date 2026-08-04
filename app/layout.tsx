@@ -44,8 +44,19 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pl">
+    // suppressHydrationWarning: data-theme dokłada poniższy skrypt, więc
+    // serwerowy HTML i ten w przeglądarce różnią się o ten jeden atrybut.
+    <html lang="pl" suppressHydrationWarning>
       <head>
+        {/* Motyw ustawiamy PRZED pierwszym malowaniem — inaczej użytkownik
+            z motywem ciemnym dostaje na ułamek sekundy białą stronę.
+            Wybór z localStorage wygrywa, a gdy go nie ma, idziemy za
+            ustawieniem systemu. Przełącznik: app/theme-toggle.tsx. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem("theme");if(t!=="dark"&&t!=="light"){t=window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"}document.documentElement.dataset.theme=t}catch(e){document.documentElement.dataset.theme="light"}})()`,
+          }}
+        />
         {/* Fonty systemu wizualnego: Instrument Sans (tekst) + JetBrains Mono
             (liczby, plakietki .eyebrow). Ładowane z CDN — bez kroku build-time. */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />

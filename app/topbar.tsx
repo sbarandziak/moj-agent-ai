@@ -10,6 +10,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { findCurrent } from "./nav-items";
+import ThemeToggle from "./theme-toggle";
 import { useUser } from "./useUser";
 
 /** Inicjały z adresu e-mail: "jan.kowalski@x.pl" -> "JK". */
@@ -64,6 +65,7 @@ export default function Topbar() {
         </div>
       )}
       <div className="spacer" />
+      <ThemeToggle />
 
       <div className="topbar-user" ref={boxRef}>
         <button

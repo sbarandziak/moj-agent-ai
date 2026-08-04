@@ -19,6 +19,20 @@
   --muted: #7a7c77;
   --line: #e5e3dd;
   --line-soft: #efeee9;
+  --line-strong: #cfccc4; /* obrys pod kursorem */
+  --placeholder: #a9aaa5; /* podpowiedź w pustym polu */
+
+  /* --- Powierzchnia kontrastowa ---
+     --ink bywa TŁEM (przyciski główne, dymki raila, bąbelek użytkownika),
+     nie tylko kolorem tekstu. --on-ink to wszystko, co na niej leży.
+     Dzięki tej parze motyw ciemny odwraca się bez dopisywania reguł. */
+  --on-ink: #ffffff;
+  --on-ink-soft: rgba(255, 255, 255, 0.72);
+  --ink-hover: rgba(255, 255, 255, 0.1);
+
+  /* --- Przydymienia: kod w tekście, zebra w tabelach --- */
+  --tint: rgba(20, 22, 26, 0.06);
+  --tint-weak: rgba(20, 22, 26, 0.015);
 
   /* --- Kolory semantyczne --- */
   --ok: #1f7a4d;
@@ -33,6 +47,14 @@
   --info: #3c6ba5;
   --info-bg: #eaf0f8;
   --info-line: #d6e1f0;
+
+  /* --- Akcenty produktowe: tryb Pro (fiolet), plakietka e-mail (turkus) --- */
+  --violet: #5b3d8f;
+  --violet-bg: #f2ecfa;
+  --violet-line: #e0d4f0;
+  --teal: #1f6b64;
+  --teal-bg: #e8f4f3;
+  --teal-line: #d0e6e3;
 
   /* --- Akcenty dekoracyjne (kropki tagów, ramki kart) --- */
   --dot-sales: #c2584b;
@@ -60,6 +82,82 @@
   --user-bg: var(--ink);
   --ai-bg: var(--card);
   --ai-border: var(--line);
+
+  /* Natywne kontrolki (paski przewijania, pola daty) idą za motywem. */
+  color-scheme: light;
+}
+
+/* ============================================================
+   Motyw ciemny (W4 Lekcja 11)
+   ------------------------------------------------------------
+   Atrybut data-theme na <html> ustawia skrypt w layout.tsx JESZCZE przed
+   pierwszym malowaniem, więc strona nie mruga bielą. Przełącznik siedzi
+   w topbarze (app/theme-toggle.tsx).
+
+   Cały motyw to WYŁĄCZNIE nadpisanie tokenów — ani jednej reguły dla
+   konkretnego komponentu. To dlatego wcześniej twarde kolory w tym pliku
+   zostały wymienione na zmienne: gdyby został choć jeden #fff, tutaj
+   trzeba by go ścigać osobną regułą.
+
+   Zasada odwrócenia: --ink zostaje kolorem KONTRASTU (w ciemnym jest
+   jasny), a --on-ink tym, co na nim leży. Przyciski główne i bąbelki
+   użytkownika robią się więc jasne z ciemnym tekstem — jak w Vercelu.
+   ============================================================ */
+
+:root[data-theme="dark"] {
+  --paper: #14151a;
+  --card: #1c1e24;
+  --sunken: #191b20;
+  --ink: #eceae6;
+  --ink-soft: #c6c8c3;
+  --muted: #8d908a;
+  --line: #2c2f36;
+  --line-soft: #23262c;
+  /* 3.45:1 wobec karty — obrys pod kursorem musi być widoczny (WCAG 1.4.11
+     wymaga 3:1 dla granic kontrolek), a #454a53 dawało tylko 1.87:1. */
+  --line-strong: #6b7280;
+  --placeholder: #6e716c;
+
+  --on-ink: #14151a;
+  --on-ink-soft: rgba(20, 21, 26, 0.66);
+  --ink-hover: rgba(20, 21, 26, 0.1);
+
+  --tint: rgba(255, 255, 255, 0.08);
+  --tint-weak: rgba(255, 255, 255, 0.03);
+
+  /* Kolory semantyczne: tekst rozjaśniony, tło przygaszone — kontrast
+     zostaje ten sam, tylko odwrócony. */
+  --ok: #74c99b;
+  --ok-bg: #16261e;
+  --ok-line: #244a37;
+  --warn: #d9b978;
+  --warn-bg: #262015;
+  --warn-line: #4a3f23;
+  --err: #ef8f85;
+  --err-bg: #2a1a19;
+  --err-line: #533029;
+  --info: #8db4e6;
+  --info-bg: #172231;
+  --info-line: #2b4462;
+
+  --violet: #c3a7ee;
+  --violet-bg: #241d33;
+  --violet-line: #3d3352;
+  --teal: #7fcfc6;
+  --teal-bg: #14282a;
+  --teal-line: #23464a;
+
+  --dot-sales: #e07d70;
+  --dot-ops: #7ea8dd;
+  --dot-mkt: #d3ab63;
+  --dot-fin: #9dbd6c;
+
+  /* Na ciemnym tle cień musi być mocniejszy, żeby w ogóle było go widać. */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 3px 14px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.55);
+
+  color-scheme: dark;
 }
 
 * {
@@ -282,7 +380,7 @@ button {
 .rail-btn[aria-current="true"],
 .rail-btn.active {
   background: var(--ink);
-  color: #fff;
+  color: var(--on-ink);
 }
 
 .rail-btn svg {
@@ -305,14 +403,14 @@ button {
   transform: translateY(-50%) translateX(-5px);
   min-width: 150px;
   background: var(--ink);
-  color: #fff;
+  color: var(--on-ink);
   padding: 8px;
   border-radius: 11px;
   text-align: left;
   z-index: 60;
   opacity: 0;
   pointer-events: none;
-  box-shadow: 0 6px 20px rgba(20, 22, 26, 0.2);
+  box-shadow: var(--shadow-lg);
   transition: opacity 0.12s ease, transform 0.12s ease;
 }
 
@@ -348,7 +446,7 @@ button {
   gap: 8px;
   padding: 6px 8px;
   border-radius: 8px;
-  color: #cfd0cd;
+  color: var(--on-ink-soft);
   font-size: 12.5px;
   text-decoration: none;
   white-space: nowrap;
@@ -356,12 +454,12 @@ button {
 }
 
 .rail-flyout-link:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
+  background: var(--ink-hover);
+  color: var(--on-ink);
 }
 
 .rail-flyout-link.active {
-  color: #fff;
+  color: var(--on-ink);
   font-weight: 600;
 }
 
@@ -381,7 +479,7 @@ button {
   display: flex;
   align-items: center;
   gap: 14px;
-  background: rgba(247, 246, 243, 0.86);
+  background: color-mix(in srgb, var(--paper) 86%, transparent);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   border-bottom: 1px solid var(--line);
@@ -411,7 +509,7 @@ button {
   width: 7px;
   height: 7px;
   border-radius: 2px;
-  background: #fff;
+  background: var(--on-ink);
 }
 
 .crumb {
@@ -433,13 +531,40 @@ button {
   flex: 0 0 auto;
 }
 
+/* Przełącznik motywu — sąsiad awatara (W4 Lekcja 11). Do czasu odczytania
+   motywu jest przezroczysty, żeby nie mignąć niewłaściwą ikoną. */
+.theme-toggle {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--card);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0;
+  transition: border-color 0.15s ease, opacity 0.15s ease;
+}
+
+.theme-toggle[data-ready] {
+  opacity: 1;
+}
+
+.theme-toggle:hover {
+  border-color: var(--line-strong);
+}
+
 .avatar {
   width: 28px;
   height: 28px;
   border: 0;
   border-radius: 50%;
   background: var(--ink);
-  color: #fff;
+  color: var(--on-ink);
   display: grid;
   place-items: center;
   font-size: 11px;
@@ -665,7 +790,7 @@ button {
 }
 
 .starter:hover:not(:disabled) {
-  border-color: #cfccc4;
+  border-color: var(--line-strong);
   transform: translateY(-1px);
 }
 
@@ -726,7 +851,7 @@ button {
 }
 
 .strip .delta.down {
-  color: #b4483c;
+  color: var(--err);
 }
 
 .strip .delta.flat {
@@ -775,7 +900,7 @@ button {
   width: 6px;
   height: 6px;
   border-radius: 2px;
-  background: #fff;
+  background: var(--on-ink);
 }
 
 .agent-tag em {
@@ -792,7 +917,7 @@ button {
   align-self: flex-end;
   max-width: 78%;
   background: var(--ink);
-  color: #fff;
+  color: var(--on-ink);
   padding: 10px 15px;
   border-radius: 16px 16px 4px 16px;
   font-size: 14.5px;
@@ -910,7 +1035,7 @@ button {
 .composer-wrap {
   flex: 0 0 auto;
   padding: 10px 0 6px;
-  background: linear-gradient(to top, var(--paper) 62%, rgba(247, 246, 243, 0));
+  background: linear-gradient(to top, var(--paper) 62%, color-mix(in srgb, var(--paper) 0%, transparent));
 }
 
 .composer {
@@ -923,7 +1048,7 @@ button {
 }
 
 .composer:focus-within {
-  border-color: #cfccc4;
+  border-color: var(--line-strong);
 }
 
 .composer textarea {
@@ -940,7 +1065,7 @@ button {
 }
 
 .composer textarea::placeholder {
-  color: #a9aaa5;
+  color: var(--placeholder);
 }
 
 .composer-bar {
@@ -966,7 +1091,7 @@ button {
 
 .chipbtn:hover:not(:disabled) {
   color: var(--ink);
-  border-color: #cfccc4;
+  border-color: var(--line-strong);
 }
 
 .chipbtn:disabled {
@@ -977,7 +1102,7 @@ button {
 .chipbtn.on {
   background: var(--ink);
   border-color: var(--ink);
-  color: #fff;
+  color: var(--on-ink);
 }
 
 .chipbtn svg {
@@ -993,7 +1118,7 @@ button {
   padding: 0;
   border-radius: 9px;
   background: var(--ink);
-  color: #fff;
+  color: var(--on-ink);
   display: grid;
   place-items: center;
 }
@@ -1007,7 +1132,7 @@ button {
 .hint {
   margin: 8px auto 0;
   font-size: 11px;
-  color: #a9aaa5;
+  color: var(--placeholder);
   text-align: center;
 }
 
@@ -1077,7 +1202,7 @@ button {
 }
 
 .ctx-btn:hover:not(:disabled) {
-  border-color: #cfccc4;
+  border-color: var(--line-strong);
   color: var(--ink);
 }
 
@@ -1134,7 +1259,7 @@ button {
 }
 
 .example-btn:hover {
-  border-color: #cfccc4;
+  border-color: var(--line-strong);
   color: var(--ink);
   transform: translateY(-1px);
 }
@@ -1250,7 +1375,7 @@ button {
 
 .row.user .bubble {
   background: var(--ink);
-  color: #fff;
+  color: var(--on-ink);
   border-bottom-right-radius: 4px;
 }
 
@@ -1286,12 +1411,12 @@ button {
 }
 
 .mode-btn:hover {
-  border-color: #cfccc4;
+  border-color: var(--line-strong);
   color: var(--ink);
 }
 
 .mode-btn.active {
-  color: #fff;
+  color: var(--on-ink);
   background: var(--ink);
   border-color: var(--ink);
   font-weight: 500;
@@ -1304,7 +1429,7 @@ button {
 }
 
 .mode-btn.active .model-hint {
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--on-ink-soft);
 }
 
 .mode-btn.model-flash.active {
@@ -1313,16 +1438,16 @@ button {
 }
 
 .mode-btn.model-flash.active .model-hint {
-  color: rgba(255, 255, 255, 0.78);
+  color: var(--on-ink-soft);
 }
 
 .mode-btn.model-pro.active {
-  background: #5b3d8f;
-  border-color: #5b3d8f;
+  background: var(--violet);
+  border-color: var(--violet);
 }
 
 .mode-btn.model-pro.active .model-hint {
-  color: rgba(255, 255, 255, 0.78);
+  color: var(--on-ink-soft);
 }
 
 /* --- Plakietka modelu przy odpowiedzi --- */
@@ -1344,15 +1469,15 @@ button {
 }
 
 .badge-pro {
-  background: #f2ecfa;
-  border-color: #e0d4f0;
-  color: #5b3d8f;
+  background: var(--violet-bg);
+  border-color: var(--violet-line);
+  color: var(--violet);
 }
 
 .badge-email {
-  background: #e8f4f3;
-  border-color: #d0e6e3;
-  color: #1f6b64;
+  background: var(--teal-bg);
+  border-color: var(--teal-line);
+  color: var(--teal);
 }
 
 /* --- Komenda /email --- */
@@ -1376,7 +1501,7 @@ button {
 }
 
 .copy-mini:hover {
-  border-color: #cfccc4;
+  border-color: var(--line-strong);
   color: var(--ink);
 }
 
@@ -1401,7 +1526,7 @@ button {
 }
 
 .input::placeholder {
-  color: #a9aaa5;
+  color: var(--placeholder);
 }
 
 .input:focus {
@@ -1413,7 +1538,7 @@ button {
   border-radius: var(--radius-sm);
   border: none;
   background: var(--ink);
-  color: #fff;
+  color: var(--on-ink);
   font-size: 0.9rem;
   font-weight: 500;
   cursor: pointer;
@@ -1532,7 +1657,7 @@ button {
 }
 
 .markdown tbody tr:nth-child(even) {
-  background: rgba(20, 22, 26, 0.015);
+  background: var(--tint-weak);
 }
 
 .markdown blockquote {
@@ -1603,7 +1728,7 @@ button {
 }
 
 .source-badge:hover {
-  border-color: #cfccc4;
+  border-color: var(--line-strong);
   color: var(--ink);
 }
 
@@ -1632,7 +1757,7 @@ button {
   margin: 0 auto;
   border-radius: 16px;
   border: 1px solid var(--line);
-  background: linear-gradient(110deg, var(--line-soft) 30%, #e2e0d9 50%, var(--line-soft) 70%);
+  background: linear-gradient(110deg, var(--line-soft) 30%, var(--line) 50%, var(--line-soft) 70%);
   background-size: 200% 100%;
   animation: img-pulse 1.4s ease-in-out infinite;
 }
@@ -1721,7 +1846,7 @@ button {
 }
 
 .dropzone:hover {
-  border-color: #cfccc4;
+  border-color: var(--line-strong);
   background: var(--line-soft);
 }
 
@@ -1741,7 +1866,7 @@ button {
   font-size: 1.6rem;
   font-weight: 500;
   color: var(--ink);
-  background: rgba(247, 246, 243, 0.86);
+  background: color-mix(in srgb, var(--paper) 86%, transparent);
   border: 3px dashed var(--ink);
   pointer-events: none;
 }
@@ -1818,7 +1943,7 @@ button {
 }
 
 .upload-btn:hover {
-  border-color: #cfccc4;
+  border-color: var(--line-strong);
   color: var(--ink);
 }
 
@@ -2139,7 +2264,7 @@ button {
 }
 
 .dash-refresh:hover:not(:disabled) {
-  border-color: #cfccc4;
+  border-color: var(--line-strong);
   color: var(--ink);
 }
 
@@ -2330,7 +2455,7 @@ button {
   color: var(--ok);
 }
 .rate-change.down {
-  color: #b4483c;
+  color: var(--err);
 }
 .rate-change.flat {
   color: var(--muted);
@@ -2407,7 +2532,7 @@ button {
 
 .action-btn:hover {
   background: var(--line-soft);
-  border-color: #cfccc4;
+  border-color: var(--line-strong);
   color: var(--ink);
 }
 
@@ -2505,7 +2630,7 @@ button {
   padding: 11px 18px;
   border-radius: var(--radius-sm);
   background: var(--ink);
-  color: #fff;
+  color: var(--on-ink);
   font-size: 0.9rem;
   font-weight: 500;
   text-decoration: none;
@@ -2534,7 +2659,7 @@ button {
 }
 
 .conv-card:hover {
-  border-color: #cfccc4;
+  border-color: var(--line-strong);
   transform: translateY(-1px);
 }
 
@@ -2615,8 +2740,8 @@ button {
 }
 
 .conv-del-yes {
-  background: #b4483c;
-  color: #fff;
+  background: var(--err);
+  color: var(--on-ink);
 }
 
 .conv-del-yes:hover {
@@ -2640,7 +2765,7 @@ button {
   transform: translateX(-50%);
   background: var(--ink);
   border: 1px solid var(--ink);
-  color: #fff;
+  color: var(--on-ink);
   padding: 12px 20px;
   border-radius: 12px;
   font-size: 0.9rem;
@@ -2673,11 +2798,11 @@ button {
 
 .conv-back:hover {
   color: var(--ink);
-  border-color: #cfccc4;
+  border-color: var(--line-strong);
 }
 
 .conv-continue {
-  color: #fff;
+  color: var(--on-ink);
   background: var(--ink);
 }
 
@@ -2801,7 +2926,7 @@ button {
 }
 
 .upload-sample-btn:hover:not(:disabled) {
-  border-color: #cfccc4;
+  border-color: var(--line-strong);
   color: var(--ink);
 }
 
@@ -2816,7 +2941,7 @@ button {
   border: none;
   border-radius: var(--radius-sm);
   padding: 11px 18px;
-  color: #fff;
+  color: var(--on-ink);
   font-size: 0.9rem;
   font-weight: 500;
   cursor: pointer;
@@ -2963,8 +3088,8 @@ button {
 }
 
 .doc-del-yes {
-  background: #b4483c;
-  color: #fff;
+  background: var(--err);
+  color: var(--on-ink);
 }
 
 .doc-del-no {
@@ -3030,7 +3155,7 @@ button {
   border: none;
   border-radius: var(--radius-sm);
   padding: 0 18px;
-  color: #fff;
+  color: var(--on-ink);
   font-size: 0.9rem;
   font-weight: 500;
   cursor: pointer;
@@ -3236,7 +3361,7 @@ button {
   align-items: center;
   justify-content: center;
   padding: 24px;
-  background: radial-gradient(1200px 600px at 50% -10%, #ffffff 0%, transparent 60%),
+  background: radial-gradient(1200px 600px at 50% -10%, var(--card) 0%, transparent 60%),
     var(--paper);
 }
 
@@ -3327,7 +3452,7 @@ button {
   border: none;
   border-radius: var(--radius-sm);
   background: var(--ink);
-  color: #fff;
+  color: var(--on-ink);
   font-size: 0.9rem;
   font-weight: 500;
   cursor: pointer;
@@ -3447,7 +3572,7 @@ button {
 
 .et-btn:hover:not(:disabled) {
   background: var(--line-soft);
-  border-color: #cfccc4;
+  border-color: var(--line-strong);
   color: var(--ink);
 }
 
@@ -3459,13 +3584,13 @@ button {
 .et-btn-primary {
   background: var(--ink);
   border-color: var(--ink);
-  color: #fff;
+  color: var(--on-ink);
 }
 
 .et-btn-primary:hover:not(:disabled) {
   background: var(--ink);
   border-color: var(--ink);
-  color: #fff;
+  color: var(--on-ink);
   opacity: 0.86;
 }
 
@@ -3661,7 +3786,7 @@ button {
 }
 
 .et-copy:hover {
-  border-color: #cfccc4;
+  border-color: var(--line-strong);
   color: var(--ink);
 }
 
@@ -3771,7 +3896,7 @@ button {
 
 .rp-btn:hover:not(:disabled) {
   background: var(--line-soft);
-  border-color: #cfccc4;
+  border-color: var(--line-strong);
   color: var(--ink);
 }
 
@@ -3783,13 +3908,13 @@ button {
 .rp-btn-primary {
   background: var(--ink);
   border-color: var(--ink);
-  color: #fff;
+  color: var(--on-ink);
 }
 
 .rp-btn-primary:hover:not(:disabled) {
   background: var(--ink);
   border-color: var(--ink);
-  color: #fff;
+  color: var(--on-ink);
   opacity: 0.86;
 }
 
@@ -3813,7 +3938,7 @@ button {
 
 .rp-example:hover:not(:disabled) {
   color: var(--ink);
-  border-color: #cfccc4;
+  border-color: var(--line-strong);
 }
 
 .rp-example:disabled {
@@ -3923,7 +4048,7 @@ button {
 }
 
 .rp-saved-open:hover {
-  border-color: #cfccc4;
+  border-color: var(--line-strong);
   color: var(--ink);
 }
 
@@ -4063,7 +4188,7 @@ button {
 
 .sec-warn code,
 .sec-error code {
-  background: rgba(20, 22, 26, 0.06);
+  background: var(--tint);
   font-family: "JetBrains Mono", ui-monospace, monospace;
   padding: 1px 4px;
   border-radius: 4px;
@@ -4365,7 +4490,7 @@ button {
 }
 
 .adm-note code {
-  background: rgba(20, 22, 26, 0.06);
+  background: var(--tint);
   font-family: "JetBrains Mono", ui-monospace, monospace;
   padding: 1px 4px;
   border-radius: 4px;
@@ -4486,7 +4611,7 @@ button {
   padding: 6px 14px;
   border-radius: 999px;
   border: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.62);
+  background: color-mix(in srgb, var(--card) 62%, transparent);
   backdrop-filter: blur(10px) saturate(1.2);
   font-size: 0.8rem;
   font-weight: 500;
@@ -4538,7 +4663,7 @@ button {
   padding: 14px 26px;
   border-radius: 999px;
   background: var(--ink);
-  color: #fff;
+  color: var(--on-ink);
   font-size: 0.95rem;
   font-weight: 500;
   box-shadow: var(--shadow-md);
@@ -4557,7 +4682,7 @@ button {
   padding: 14px 22px;
   border-radius: 999px;
   border: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.6);
+  background: color-mix(in srgb, var(--card) 60%, transparent);
   backdrop-filter: blur(10px);
   color: var(--ink);
   font-size: 0.95rem;
@@ -4617,7 +4742,7 @@ button {
   padding: 22px 20px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  background: rgba(255, 255, 255, 0.66);
+  background: color-mix(in srgb, var(--card) 66%, transparent);
   backdrop-filter: blur(14px) saturate(1.15);
   box-shadow: var(--shadow-sm);
   animation: lp-rise 0.7s cubic-bezier(0.2, 0.7, 0.3, 1) backwards;
@@ -4670,7 +4795,7 @@ button {
   margin: 32px auto 0;
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  background: rgba(255, 255, 255, 0.8);
+  background: color-mix(in srgb, var(--card) 80%, transparent);
   backdrop-filter: blur(16px) saturate(1.15);
   box-shadow: var(--shadow-lg);
   overflow: hidden;
@@ -4722,7 +4847,7 @@ button {
   padding: 9px 14px;
   border-radius: 14px 14px 4px 14px;
   background: var(--ink);
-  color: #fff;
+  color: var(--on-ink);
   font-size: 0.88rem;
 }
 
@@ -4769,7 +4894,7 @@ button {
   text-align: center;
   border: 1px solid var(--line);
   border-radius: 20px;
-  background: rgba(255, 255, 255, 0.7);
+  background: color-mix(in srgb, var(--card) 70%, transparent);
   backdrop-filter: blur(16px) saturate(1.15);
   box-shadow: var(--shadow-md);
 }
