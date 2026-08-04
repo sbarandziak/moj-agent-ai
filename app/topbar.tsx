@@ -6,7 +6,7 @@
 // ============================================================
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { findCurrent } from "./nav-items";
@@ -22,6 +22,7 @@ function initials(email: string): string {
 
 export default function Topbar() {
   const pathname = usePathname();
+  const router = useRouter();
   const user = useUser();
   const [menuOpen, setMenuOpen] = useState(false);
   const boxRef = useRef<HTMLDivElement>(null);
@@ -40,10 +41,12 @@ export default function Topbar() {
   const current = findCurrent(pathname);
   const email = user.email ?? "";
 
-  // Wyloguj: kasuje sesję. AuthGate wykryje jej brak i przekieruje na /login.
+  // Wyloguj: kasuje sesję i wraca na "/", gdzie bez sesji czeka landing page
+  // (W1 Lekcja 11). Bez tego skoku AuthGate wyrzuciłby wprost na /login.
   async function handleLogout() {
     setMenuOpen(false);
     await supabase.auth.signOut();
+    router.replace("/");
   }
 
   return (

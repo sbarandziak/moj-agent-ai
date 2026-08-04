@@ -25,3 +25,9 @@ export function useUser(): User {
   }
   return user;
 }
+
+// Wariant dla stron publicznych (W1 Lekcja 11): "/" renderuje się także bez
+// sesji, więc tam brak użytkownika jest normalnym stanem, nie błędem.
+export function useOptionalUser(): User | null {
+  return useContext(UserContext);
+}

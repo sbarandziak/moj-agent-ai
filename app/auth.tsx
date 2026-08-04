@@ -7,7 +7,8 @@
 //   - zalogowany wchodzący na /login        -> redirect na /,
 //   - dla zalogowanego renderować pełny układ (sidebar + treść),
 //     udostępniając obiekt User przez UserContext (useUser()).
-// Strona /login renderuje się samodzielnie, bez sidebaru.
+// Strony publiczne (/login i "/" = landing page z W1 Lekcji 11)
+// renderują się samodzielnie, bez sidebaru.
 // ============================================================
 
 "use client";
@@ -19,6 +20,11 @@ import { supabase } from "@/lib/supabase";
 import { UserContext } from "./useUser";
 import Nav from "./nav";
 import Topbar from "./topbar";
+
+// Ścieżki dostępne bez sesji. "/" jest publiczne, bo niezalogowanemu
+// pokazujemy tam landing page (app/landing.tsx) zamiast wyrzucać go
+// na /login — o tym, co wyrenderować, decyduje app/page.tsx.
+const PUBLIC_PATHS = ["/login", "/"];
 
 export default function AuthGate({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -42,7 +48,7 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
   // Przekierowania — dopiero gdy znamy stan sesji (unikamy migotania).
   useEffect(() => {
     if (!ready) return;
-    if (!user && pathname !== "/login") {
+    if (!user && !PUBLIC_PATHS.includes(pathname)) {
       router.replace("/login");
     } else if (user && pathname === "/login") {
       router.replace("/");
@@ -56,6 +62,12 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
 
   // Strona logowania: samodzielny widok (bez nawigacji).
   if (pathname === "/login") {
+    return <>{children}</>;
+  }
+
+  // Niezalogowany na "/": landing page na pełnej szerokości, bez railu
+  // i topbara. UserContext zostaje pusty, więc page.tsx wie, co pokazać.
+  if (!user && pathname === "/") {
     return <>{children}</>;
   }
 
