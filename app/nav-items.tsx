@@ -180,7 +180,7 @@ export const NAV_GROUPS: NavGroup[] = [
   },
   {
     label: "Bezpieczeństwo",
-    hint: "Uprawnienia i logi",
+    hint: "Logi, uprawnienia, zużycie",
     separatorBefore: true,
     icon: (
       <svg {...S}>
@@ -188,7 +188,10 @@ export const NAV_GROUPS: NavGroup[] = [
         <path d="m9 12 2 2 4-4" />
       </svg>
     ),
-    items: [{ href: "/admin/security", label: "Bezpieczeństwo" }],
+    items: [
+      { href: "/admin/security", label: "Bezpieczeństwo" },
+      { href: "/admin/dashboard", label: "Statystyki użycia" },
+    ],
   },
 ];
 

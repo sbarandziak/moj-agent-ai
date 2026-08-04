@@ -7,16 +7,17 @@
 // pokazuje dane WSZYSTKICH użytkowników (RLS na api_usage/message_logs
 // celowo na to nie pozwala z przeglądarki).
 //
-// KTO JEST ADMINEM: lista maili w zmiennej środowiskowej ADMIN_EMAILS
-// (rozdzielona przecinkami), np. ADMIN_EMAILS=ja@example.com. Gdy zmienna
-// NIE jest ustawiona, panel jest otwarty dla każdego zalogowanego (wygodne
-// na kursie) — trasa zwraca wtedy adminMode: "open", a strona wyświetla
-// ostrzeżenie. Na produkcji ustaw ADMIN_EMAILS.
+// KTO JEST ADMINEM: lista maili w zmiennej środowiskowej ADMIN_EMAILS —
+// bramka mieszka w lib/admin-auth.ts (współdzielona z /api/admin/dashboard
+// od L11 W2). Gdy zmienna NIE jest ustawiona, panel jest otwarty dla
+// każdego zalogowanego (wygodne na kursie) — trasa zwraca wtedy
+// adminMode: "open", a strona wyświetla ostrzeżenie.
 // ============================================================
 
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { DAILY_TOKEN_LIMIT, startOfToday } from "@/lib/budget";
 import { loadBlockedLogs, type BlockedLogRow } from "@/lib/security-log";
+import { checkAdminAccess, labelUser } from "@/lib/admin-auth";
 
 type UsageRow = {
   user_id: string | null;
@@ -66,36 +67,16 @@ export async function GET(req: Request) {
     );
   }
 
-  // --- Mapa user_id -> email (z Supabase Auth; tylko service_role) --------
-  const emails = new Map<string, string>();
-  try {
-    const { data } = await supabase.auth.admin.listUsers({ perPage: 1000 });
-    for (const u of data?.users ?? []) {
-      if (u.email) emails.set(u.id, u.email);
-    }
-  } catch (err) {
-    // Brak dostępu do listy userów nie może wywalić panelu — pokażemy same ID.
-    console.warn(
-      "[security] Nie udało się pobrać listy użytkowników:",
-      err instanceof Error ? err.message : err
+  // --- Kontrola dostępu + mapa user_id -> email ---------------------------
+  const { allowed, adminMode, emails } = await checkAdminAccess(
+    supabase,
+    callerId
+  );
+  if (!allowed) {
+    return Response.json(
+      { error: "Brak uprawnień do panelu bezpieczeństwa." },
+      { status: 403 }
     );
-  }
-
-  // --- Kontrola dostępu ---------------------------------------------------
-  const adminEmails = (process.env.ADMIN_EMAILS ?? "")
-    .split(",")
-    .map((e) => e.trim().toLowerCase())
-    .filter(Boolean);
-
-  const adminMode = adminEmails.length > 0 ? "restricted" : "open";
-  if (adminMode === "restricted") {
-    const callerEmail = emails.get(callerId)?.toLowerCase();
-    if (!callerEmail || !adminEmails.includes(callerEmail)) {
-      return Response.json(
-        { error: "Brak uprawnień do panelu bezpieczeństwa." },
-        { status: 403 }
-      );
-    }
   }
 
   // --- Zużycie tokenów: dziś i ostatnie 7 dni -----------------------------
@@ -155,7 +136,7 @@ export async function GET(req: Request) {
   const topUsers: TopUser[] = [...perUser.entries()]
     .map(([userId, v]) => ({
       userId,
-      email: emails.get(userId) ?? `(nieznany: ${userId.slice(0, 8)}…)`,
+      email: labelUser(emails, userId),
       today: v.today,
       week: v.week,
       percent: Math.min(100, Math.round((v.today / DAILY_TOKEN_LIMIT) * 100)),
@@ -167,9 +148,7 @@ export async function GET(req: Request) {
   const blockedRows = await loadBlockedLogs(50);
   const blocked = (blockedRows ?? []).map((r: BlockedLogRow) => ({
     ...r,
-    email: r.user_id
-      ? emails.get(r.user_id) ?? `(nieznany: ${r.user_id.slice(0, 8)}…)`
-      : "(brak sesji)",
+    email: labelUser(emails, r.user_id),
   }));
 
   const dayAgo = Date.now() - 24 * 3600 * 1000;

@@ -600,8 +600,8 @@ button {
   padding: 16px 22px;
 }
 
-/* Panel bezpieczeństwa ma szerokie tabele — potrzebuje więcej miejsca niż
-   kolumna czatu. */
+/* Panele /admin/* (bezpieczeństwo, dashboard) mają szerokie tabele i
+   wykresy obok siebie — potrzebują więcej miejsca niż kolumna czatu. */
 .app:has(.sec-wrap) {
   max-width: 1040px;
 }
@@ -4254,6 +4254,127 @@ button {
   margin-top: 4px;
   font-size: 0.8rem;
   color: var(--muted);
+}
+
+/* ============================================================
+   Dashboard użycia "/admin/dashboard" (W2 Lekcja 11)
+   ------------------------------------------------------------
+   Karty, sekcje i tabele bierze z bloku .sec-* wyżej — oba panele
+   /admin/* mają wyglądać identycznie. Tutaj jest tylko to, czego panel
+   bezpieczeństwa nie miał: wykresy SVG i ich legenda.
+   Kolory serii pochodzą z akcentów --dot-* (charts.tsx), nie z hexów.
+   ============================================================ */
+
+.adm-charts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+  gap: 12px;
+}
+
+.adm-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+}
+
+/* Wykres skaluje się do szerokości karty; proporcje trzyma viewBox. */
+.adm-chart svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.adm-chart-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.adm-chart-title {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.adm-chart-sum {
+  font-size: 0.75rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.adm-pie {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+/* Pierścień ma stały rozmiar (inaczej reguła .adm-chart svg rozciąga go
+   na całą kartę i nie zostaje miejsca na legendę). */
+.adm-chart .adm-donut {
+  width: 112px;
+  flex: 0 0 112px;
+}
+
+.adm-legend {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1 1 160px;
+  min-width: 0;
+}
+
+.adm-legend li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.78rem;
+  min-width: 0;
+}
+
+.adm-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 3px;
+  flex: 0 0 auto;
+}
+
+.adm-legend-name {
+  color: var(--ink-soft);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.adm-legend-val {
+  margin-left: auto;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.adm-note {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.adm-note code {
+  background: rgba(20, 22, 26, 0.06);
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  padding: 1px 4px;
+  border-radius: 4px;
+}
+
+.adm-cell-title {
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* ============================================================
