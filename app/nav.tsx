@@ -39,6 +39,10 @@ export default function Nav() {
         {NAV_GROUPS.map((group) => {
           const active = group.items.some((i) => isActive(pathname, i.href));
           const single = group.items.length === 1;
+          // Tytuł dymka powtarzałby nazwę pozycji (grupa „Chat" ma stronę
+          // „Chat"), więc pokazujemy go tylko wtedy, gdy wnosi nową nazwę.
+          // Ta sama zasada rządzi okruszkiem w topbarze.
+          const showTitle = !group.items.some((i) => i.label === group.label);
 
           return (
             <div key={group.label} className="rail-item">
@@ -76,7 +80,9 @@ export default function Nav() {
                   <div
                     className={`rail-flyout ${open === group.label ? "open" : ""}`}
                   >
-                    <span className="rail-flyout-title">{group.label}</span>
+                    {showTitle && (
+                      <span className="rail-flyout-title">{group.label}</span>
+                    )}
                     {group.items.map((item) => (
                       <Link
                         key={item.href}
