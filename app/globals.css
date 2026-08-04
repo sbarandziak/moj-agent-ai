@@ -4359,6 +4359,7 @@ button {
   animation-delay: 0.37s;
 }
 
+/* Plakietka jest linkiem do /login — stąd hover i kursor. */
 .lp-badge {
   display: inline-block;
   padding: 6px 14px;
@@ -4370,6 +4371,17 @@ button {
   font-weight: 500;
   color: var(--ink-soft);
   box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  transition:
+    border-color 0.18s ease,
+    color 0.18s ease,
+    transform 0.18s ease;
+}
+
+.lp-badge:hover {
+  border-color: var(--ink);
+  color: var(--ink);
+  transform: translateY(-1px);
 }
 
 .lp-title {

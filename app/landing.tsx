@@ -49,7 +49,11 @@ export default function Landing() {
 
       {/* ---------- 1. HERO ---------- */}
       <header className="lp-hero">
-        <div className="lp-badge">🤖 {AGENT_NAME}</div>
+        {/* Plakietka z logo jest skrótem do logowania — tak jak nazwa
+            produktu w topbarze prowadzi do strony startowej. */}
+        <Link className="lp-badge" href="/login">
+          🤖 {AGENT_NAME}
+        </Link>
         <h1 className="lp-title">{AGENT_NAME}</h1>
         <p className="lp-tagline">{TAGLINE}</p>
 
