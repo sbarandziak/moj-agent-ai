@@ -505,11 +505,12 @@ button {
   place-items: center;
 }
 
-.brand-mark span {
-  width: 7px;
-  height: 7px;
-  border-radius: 2px;
-  background: var(--on-ink);
+/* Robot rysowany jest wewnątrz plakietki (topbar.tsx) i wypełnia ją prawie
+   w całości — dlatego 16px w 20px kwadracie, a nie kropka jak wcześniej. */
+.brand-mark svg {
+  display: block;
+  width: 16px;
+  height: 16px;
 }
 
 .crumb {

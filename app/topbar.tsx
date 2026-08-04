@@ -53,8 +53,18 @@ export default function Topbar() {
   return (
     <header className="topbar">
       <Link href="/" className="brand">
+        {/* Znak marki: ten sam robot co w favikonie (app/icon.svg), ale
+            jednobarwny. Głowa i antenka biorą --on-ink, oczy --ink — czyli
+            dokładnie te dwa tokeny, które motyw ciemny zamienia miejscami.
+            Dzięki temu logo obraca się samo, bez żadnej reguły warunkowej. */}
         <span className="brand-mark">
-          <span />
+          <svg viewBox="0 0 16 16" aria-hidden="true">
+            <circle cx="8" cy="2.6" r="1.1" fill="var(--on-ink)" />
+            <rect x="7.4" y="3.2" width="1.2" height="2.4" rx="0.6" fill="var(--on-ink)" />
+            <rect x="2.5" y="5" width="11" height="8" rx="2.6" fill="var(--on-ink)" />
+            <circle cx="6" cy="9" r="1.15" fill="var(--ink)" />
+            <circle cx="10" cy="9" r="1.15" fill="var(--ink)" />
+          </svg>
         </span>
         Mój Agent
       </Link>
