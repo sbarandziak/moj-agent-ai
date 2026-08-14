@@ -67,9 +67,21 @@ create policy "own_profile" on public.user_profiles
 -- ------------------------------------------------------------
 -- match_documents ma zmienny search_path — potencjalny wektor ataku.
 -- Ustawiamy go na stałe. Nie zmienia logiki funkcji.
+--
+-- UWAGA — `extensions` na liście jest OBOWIĄZKOWE.
+-- Supabase instaluje pgvector w schemacie `extensions`, nie w `public`.
+-- Tam też mieszka operator `<=>` (odległość kosinusowa), którego używa ciało
+-- funkcji. Przy `search_path = public, pg_temp` operator staje się niewidoczny
+-- i każde wyszukiwanie w bazie wiedzy kończy się błędem:
+--   operator does not exist: extensions.vector <=> extensions.vector
+-- (Typ nadal się rozwiązuje, bo siedzi w sygnaturze funkcji po OID — dlatego
+-- komunikat potrafi wypisać `extensions.vector`, twierdząc jednocześnie, że
+-- operatora nie ma.)
+-- Ostrzeżenie Security Advisora znika tak samo: search_path jest ustawiony
+-- na stałe, a to jedyne, czego wymaga ta reguła.
 -- ============================================================
 alter function public.match_documents(vector, double precision, integer)
-  set search_path = public, pg_temp;
+  set search_path = public, extensions, pg_temp;
 
 -- ============================================================
 -- Warning: "Leaked Password Protection Disabled" — NIE robi się w SQL.
