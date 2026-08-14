@@ -19,3 +19,7 @@
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# python
+__pycache__/
+*.pyc

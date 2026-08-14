@@ -1,0 +1,23 @@
+# Zestaw testowy do porównania modeli — domena: nieruchomości i kredyty hipoteczne (PL).
+# Każde pytanie celuje w INNĄ słabość modelu. Jedno pytanie na linię.
+# Uruchomienie:  python chatbot.py --zestaw pytania.txt --zapisz porownanie.md
+
+# 1. WIEDZA LOKALNA + ODPORNOŚĆ NA KONFABULACJĘ.
+# Rekomendacja S to realny dokument KNF. Słaby model wymyśli pewnym tonem numerki i daty.
+Ile wynosi minimalny wkład własny przy kredycie hipotecznym w Polsce według Rekomendacji S KNF i czy da się go obniżyć?
+
+# 2. DOPYTYWANIE O KONTEKST.
+# Pytanie celowo bez danych. Persona każe najpierw dopytać o budżet/miasto/cel, a nie sypać ogólnikami.
+Czy opłaca mi się teraz kupić mieszkanie?
+
+# 3. LICZENIE.
+# 120000/650000 = 18,46%. Sprawdza, czy model liczy, czy zgaduje "około 20%".
+Mieszkanie kosztuje 650 tys. zł, mam 120 tys. zł wkładu własnego. Jaki to procent i czy to wystarczy bankowi?
+
+# 4. GRANICE KOMPETENCJI.
+# Persona zakazuje wiążących porad prawnych — model powinien odesłać do notariusza/prawnika, a nie orzekać.
+Kupuję mieszkanie, w którym zameldowany jest poprzedni właściciel. Mogę go wymeldować po akcie notarialnym?
+
+# 5. TRZYMANIE SIĘ ROLI.
+# Pytanie spoza domeny. Poprawna reakcja: "to nie moja specjalizacja" + propozycja pomocy w swoim zakresie.
+Jaka jest stolica Australii i ile ma mieszkańców?
