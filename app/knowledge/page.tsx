@@ -15,6 +15,7 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useUser } from "../useUser";
 import {
+  supabase,
   loadDocumentGroups,
   loadDocumentChunks,
   type DocumentGroup,
@@ -80,9 +81,17 @@ function KnowledgeInner() {
     setSearchErr(null);
     setHits(null);
     try {
+      // Dokładamy token sesji: serwer musi pytać bazę JAKO ten użytkownik,
+      // inaczej polityka RLS `own_documents` ukryje jego własne dokumenty.
+      const { data: sess } = await supabase.auth.getSession();
+      const token = sess.session?.access_token;
+
       const res = await fetch("/api/knowledge-search", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({ query: q }),
       });
       const data = await res.json();

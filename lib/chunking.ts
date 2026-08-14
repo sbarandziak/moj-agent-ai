@@ -28,9 +28,26 @@ function tailOverlap(text: string, overlap: number): string {
 
 // Główna funkcja: łączy zdania w fragmenty ~chunkSize znaków,
 // każdy z zakładką ~overlap znaków z poprzednim.
+// chunkSize = 400 znaków (nie 1000) — wynik pomiaru, nie przeczucie.
+// Przy 1000 typowy dokument firmowy (cennik, FAQ, regulamin ~450-600 znaków)
+// mieścił się w CAŁOŚCI w jednym fragmencie, więc chunkowanie w praktyce
+// nie zachodziło. Jeden wektor uśredniał wtedy wszystkie tematy dokumentu
+// (FAQ = anulowanie + zmiana pakietu + okres próbny + faktury naraz), przez co
+// pytania trafione i bzdurne lądowały w wąskim paśmie 0,61-0,68 i nie dało się
+// ich rozdzielić żadnym progiem.
+//
+// Zmierzone na 3 dokumentach i 8 pytaniach (4 trafione / 4 bzdurne),
+// margines = najsłabsze trafione minus najmocniejsze bzdurne:
+//   chunkSize 1000 -> 3 fragm.  margines +0,066   (obecnie)
+//   chunkSize  400 -> 6 fragm.  margines +0,133   <- wybrane
+//   chunkSize  250 -> 9 fragm.  margines +0,117
+//   chunkSize  150 -> 17 fragm. margines +0,152   (za drobno: tnie kontekst)
+//
+// UWAGA: zmiana działa dopiero po PONOWNYM wgraniu dokumentów — istniejące
+// wiersze w bazie mają embeddingi policzone dla starego podziału.
 export function splitIntoChunks(
   text: string,
-  chunkSize: number = 1000,
+  chunkSize: number = 400,
   overlap: number = 50
 ): string[] {
   const clean = text.trim();

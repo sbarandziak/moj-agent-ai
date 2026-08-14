@@ -21,7 +21,13 @@ export async function POST(req: Request) {
     return Response.json({ error: "Pole 'query' jest wymagane" }, { status: 400 });
   }
 
-  const result = await queryKnowledge(query);
+  // Token sesji z nagłówka Authorization. Bez niego RLS na tabeli `documents`
+  // ukryje wszystko — endpoint działa server-side, więc nie ma własnej sesji.
+  const accessToken = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
+
+  // Próg i liczba wyników: domyślne z lib/knowledge.ts (0.68 / 5) — endpoint
+  // testowy ma pokazywać dokładnie to, co zobaczy agent.
+  const result = await queryKnowledge(query, undefined, undefined, accessToken);
   if ("error" in result && result.error) {
     return Response.json({ error: result.error }, { status: 502 });
   }
