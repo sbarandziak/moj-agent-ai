@@ -1,9 +1,12 @@
 // Agregator danych dla dashboardu (W4). Pobiera PRAWDZIWE dane bezpośrednio
 // z publicznych API (bez klucza, bez modelu) — żeby dashboard ładował się szybko:
 //   - pogoda: Open-Meteo
+//   - prognoza 7-dniowa: Open-Meteo (lib/forecast.ts — ta sama, co narzędzie agenta)
 //   - kursy: NBP (tabela A, ostatnie 2 notowania → zmiana ↑/↓)
 //   - święta: Nager.Date
 // Wszystko po stronie serwera → brak problemów z CORS, równoległe fetch.
+
+import { getWeeklyForecast } from "@/lib/forecast";
 
 export const dynamic = "force-dynamic"; // zawsze świeże dane
 
@@ -135,14 +138,16 @@ export async function GET(req: Request) {
   const year = now.getFullYear();
 
   // Wszystkie źródła równolegle — dashboard ma być szybki.
-  const [weather, eur, usd, holidays] = await Promise.all([
+  const [weather, forecast, eur, usd, holidays] = await Promise.all([
     loadWeather(city),
+    getWeeklyForecast(city, 7),
     loadRate("EUR"),
     loadRate("USD"),
     loadHolidays("PL", year),
   ]);
 
   return Response.json({
+    forecast,
     datetime: {
       weekday: now.toLocaleDateString("pl-PL", {
         weekday: "long",

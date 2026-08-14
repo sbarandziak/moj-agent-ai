@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
+import type { ForecastOk } from "@/lib/forecast";
 
 // Domyślne miasto pogodowe. Praca domowa: zmień na swoje lub dodaj wybór miasta.
 const CITY = "Warszawa";
@@ -34,9 +35,14 @@ function hasError<T extends object>(v: T): v is T & { error: string } {
   return typeof v === "object" && v !== null && "error" in v;
 }
 
+// Prognoza 7-dniowa — ten sam kształt, który dostaje agent podróży
+// z narzędzia getWeeklyForecast (lib/forecast.ts).
+type Forecast = ForecastOk | { error: string };
+
 type DashboardData = {
   datetime: { weekday: string; dateLabel: string };
   weather: Weather;
+  forecast: Forecast;
   rates: Rate[];
   holidays: Holidays;
 };
@@ -97,6 +103,12 @@ export default function Dashboard() {
   const greeting = getGreeting();
   const dt = data?.datetime;
 
+  // Prognozę zawężamy TUTAJ, a nie w JSX: zawężenie typu przez hasError()
+  // nie przetrwałoby wejścia do callbacka .map() poniżej (TS nie zakłada,
+  // że właściwość obiektu jest niezmienna wewnątrz domknięcia).
+  const forecast = data && !hasError(data.forecast) ? data.forecast : null;
+  const forecastError = data && hasError(data.forecast) ? data.forecast.error : null;
+
   return (
     <div className="dashboard">
       <div className="dash-topbar">
@@ -149,6 +161,72 @@ export default function Dashboard() {
               </div>
             </div>
           )}
+        </section>
+
+        {/* --- Prognoza na tydzień (nowa funkcja) --- */}
+        {/* Karta na całą szerokość siatki: 7 dni obok siebie czyta się jak pasek
+            czasu, a w dwóch kolumnach musiałyby się zawijać. */}
+        <section className="card card-forecast fade-in">
+          <div className="card-head">
+            <span className="card-title">📆 Prognoza na tydzień</span>
+            <span className="card-updated">
+              {forecast ? `${forecast.city} · ` : ""}akt. {updatedLabel}
+            </span>
+          </div>
+          {!data ? (
+            <Skeleton lines={3} />
+          ) : forecastError ? (
+            <p className="card-error">⚠️ {forecastError}</p>
+          ) : forecast ? (
+            <div className="forecast-body">
+              <div className="forecast-strip">
+                {forecast.days.map((d) => {
+                  const best = d.date === forecast.bestDay.date;
+                  return (
+                    <div
+                      key={d.date}
+                      className={`forecast-day ${best ? "best" : ""}`}
+                      title={`${d.description} · opady ${d.precipChance}% · wiatr ${d.windKmh} km/h`}
+                    >
+                      <span className="fc-weekday">{d.weekday}</span>
+                      <span className="fc-emoji">{d.emoji}</span>
+                      <span className="fc-temp">
+                        <b>{d.tempMax}°</b>
+                        <span className="fc-min">{d.tempMin}°</span>
+                      </span>
+                      <span className={`fc-rain ${d.precipChance >= 40 ? "wet" : ""}`}>
+                        💧 {d.precipChance}%
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="forecast-best">
+                🏆 Najlepszy dzień na wyjazd: <b>{forecast.bestDay.weekday}</b>,{" "}
+                {shortDate(forecast.bestDay.date)} — {forecast.bestDay.tempMax}°C,{" "}
+                {forecast.bestDay.description}
+              </div>
+
+              <ul className="forecast-packing">
+                {forecast.packing.map((p) => (
+                  <li key={p}>{p}</li>
+                ))}
+              </ul>
+
+              <Link
+                href={
+                  "/travel?q=" +
+                  encodeURIComponent(
+                    `Zaplanuj wyjazd do ${forecast.city} w najbliższym tygodniu`,
+                  )
+                }
+                className="forecast-cta"
+              >
+                ✈️ Zaplanuj wyjazd na ten tydzień →
+              </Link>
+            </div>
+          ) : null}
         </section>
 
         {/* --- Kursy walut --- */}

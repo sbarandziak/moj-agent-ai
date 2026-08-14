@@ -14,6 +14,7 @@ const EXAMPLES = [
   "Wycieczka do Pragi z rodziną na 3 dni",
   "Podróż służbowa do Londynu w przyszłym tygodniu",
   "Porównaj Barcelonę i Lizbonę na wakacje",
+  "Który dzień w tym tygodniu jest najlepszy na wyjazd do Zakopanego?",
 ];
 
 // Wybór modelu (Flash = szybki, Pro = zaawansowany) — trafia do /api/travel.
@@ -27,6 +28,7 @@ const MODELS: { id: ModelKey; label: string; emoji: string; hint: string }[] = [
 // Źródła danych agenta podróży — odzwierciedlają narzędzia w /api/travel.
 const TOOLS: { emoji: string; name: string; source: string }[] = [
   { emoji: "🌤️", name: "Pogoda", source: "Open-Meteo" },
+  { emoji: "📆", name: "Prognoza 7 dni", source: "Open-Meteo" },
   { emoji: "💱", name: "Waluty", source: "NBP" },
   { emoji: "🎉", name: "Święta", source: "Nager.Date" },
   { emoji: "🏛️", name: "Miasta", source: "Wikipedia" },
@@ -92,6 +94,13 @@ export default function TravelPage() {
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, status]);
+
+  // Wstępnie wypełnij pole promptem z ?q=... (np. „Zaplanuj wyjazd" z karty
+  // prognozy na dashboardzie). Ten sam wzorzec co na /react.
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search).get("q");
+    if (q) setInput(q);
+  }, []);
 
   useEffect(() => {
     if (isLoading) {

@@ -6,13 +6,18 @@ import {
   type UIMessage,
 } from "ai";
 import { reactTools } from "../react/tools";
+import { MAX_STEPS } from "@/app/travel/constants";
 
 // Planowanie podróży = kilka wywołań narzędzi (pogoda, waluta, święta,
 // Wikipedia, kalkulator), a tryb porównania dwa razy tyle — dajemy czas.
 export const maxDuration = 60;
 
 // Ochrona przed pętlami (W0, lekcja 06): twardy limit kroków agenta.
-const maxSteps = 3;
+// Limit bierzemy z app/travel/constants.ts — TEGO SAMEGO miejsca, z którego
+// pasek postępu na /travel czyta swój mianownik. Wcześniej była tu zaszyta
+// trójka, więc UI obiecywał „X z 10", a agent zatrzymywał się po 3 krokach
+// i nigdy nie zdążył zebrać kompletu danych.
+const maxSteps = MAX_STEPS;
 
 // Search Grounding to najdroższa funkcja API ($14/1000 zapytań) — domyślnie
 // WYŁĄCZONA. Włącz tylko na czas testów: ENABLE_SEARCH_GROUNDING=true w .env.local.
@@ -34,10 +39,13 @@ prawdziwych źródeł — nie zgadujesz.
 
 Dla KAŻDEJ podróży sprawdź (używając narzędzi):
 1. 🌤️ Pogodę w miejscu docelowym (getWeather)
-2. 💶 Kurs lokalnej waluty względem PLN (getExchangeRate)
-3. 📅 Dni wolne / święta w kraju docelowym (getHolidays)
-4. 📖 Informacje o mieście / atrakcjach (searchWikipedia, ew. google_search)
-5. 🧮 Przeliczenie budżetu, jeśli użytkownik go podał (calculator)
+2. 📆 Prognozę na czas pobytu (getWeeklyForecast) — ZAWSZE przy wyjeździe
+   dłuższym niż jeden dzień. To narzędzie zwraca gotowy wskaźnik najlepszego
+   dnia i listę rzeczy do spakowania — wykorzystaj je, nie licz tego sam.
+3. 💶 Kurs lokalnej waluty względem PLN (getExchangeRate)
+4. 📅 Dni wolne / święta w kraju docelowym (getHolidays)
+5. 📖 Informacje o mieście / atrakcjach (searchWikipedia, ew. google_search)
+6. 🧮 Przeliczenie budżetu, jeśli użytkownik go podał (calculator)
 
 Po zebraniu danych wygeneruj GOTOWY PLAN dokładnie w tym formacie (markdown):
 
@@ -50,6 +58,18 @@ Po zebraniu danych wygeneruj GOTOWY PLAN dokładnie w tym formacie (markdown):
 
 ### 🌤️ Pogoda
 [Szczegóły pogody + co spakować]
+
+### 📆 Prognoza na tydzień
+[Tabela z danych getWeeklyForecast — jeden wiersz na dzień:]
+
+| Dzień | Pogoda | Temp. | Opady | Wiatr |
+|-------|--------|-------|-------|-------|
+| pon 18.08 | ☀️ bezchmurnie | 18-27°C | 0% | 12 km/h |
+
+Pod tabelą OBOWIĄZKOWO dwie linie:
+- **🏆 Najlepszy dzień na zwiedzanie:** [bestDay z narzędzia + jednozdaniowe
+  uzasadnienie: temperatura, brak opadów, słaby wiatr]
+- **🧳 Spakuj:** [lista packing z narzędzia, wypisana po przecinku]
 
 ### 💰 Budżet
 [Przeliczenia walutowe, orientacyjne koszty w PLN]

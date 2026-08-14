@@ -2346,6 +2346,10 @@ button {
 .card-actions::before {
   background: var(--dot-sales);
 }
+/* Prognoza dzieli akcent z kartą pogody — to ta sama rodzina danych. */
+.card-forecast::before {
+  background: var(--dot-ops);
+}
 
 .fade-in {
   animation: card-fade 0.5s ease both;
@@ -2353,6 +2357,9 @@ button {
 
 .card-weather.fade-in {
   animation-delay: 0.02s;
+}
+.card-forecast.fade-in {
+  animation-delay: 0.05s;
 }
 .card-rates.fade-in {
   animation-delay: 0.08s;
@@ -2525,6 +2532,132 @@ button {
 .holiday-next b {
   color: var(--ink);
   font-weight: 500;
+}
+
+/* --- Prognoza na tydzień -------------------------------------------------
+   Karta idzie przez całą szerokość siatki: 7 dni obok siebie czyta się jak oś
+   czasu, a wciśnięte w jedną kolumnę zawijałyby się i traciły ten sens. */
+.card-forecast {
+  grid-column: 1 / -1;
+}
+
+.forecast-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.forecast-strip {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+
+.forecast-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 10px 4px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-soft);
+  background: var(--paper);
+  transition: all 0.15s ease;
+}
+
+/* Najlepszy dzień — wyróżniony obrysem, nie krzykliwym tłem. */
+.forecast-day.best {
+  border-color: var(--dot-ops);
+  box-shadow: inset 0 0 0 1px var(--dot-ops);
+}
+
+.fc-weekday {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: capitalize;
+}
+
+.fc-emoji {
+  font-size: 1.25rem;
+  line-height: 1.2;
+}
+
+.fc-temp {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  font-size: 0.85rem;
+  color: var(--ink);
+}
+
+.fc-min {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.fc-rain {
+  font-size: 0.68rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+/* Realne ryzyko opadów (≥40%) — to informacja, na którą user reaguje. */
+.fc-rain.wet {
+  color: var(--dot-ops);
+  font-weight: 600;
+}
+
+.forecast-best {
+  padding-top: 10px;
+  border-top: 1px solid var(--line-soft);
+  font-size: 0.88rem;
+  color: var(--ink-soft);
+}
+
+.forecast-best b {
+  color: var(--ink);
+  text-transform: capitalize;
+}
+
+.forecast-packing {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.forecast-packing li {
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+}
+
+.forecast-cta {
+  align-self: flex-start;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--dot-ops);
+  text-decoration: none;
+}
+
+.forecast-cta:hover {
+  text-decoration: underline;
+}
+
+/* Na wąskim ekranie pasek przewija się w poziomie zamiast ściskać kolumny
+   do nieczytelnej szerokości. */
+@media (max-width: 720px) {
+  .forecast-strip {
+    grid-template-columns: repeat(7, minmax(56px, 1fr));
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
 }
 
 /* Szybkie akcje */

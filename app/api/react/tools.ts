@@ -1,6 +1,8 @@
 import { tool } from "ai";
 import { z } from "zod";
 import { queryKnowledge } from "@/lib/knowledge";
+// Alias, bo eksportowane niżej narzędzie nazywa się tak samo jak funkcja z lib.
+import { getWeeklyForecast as getWeeklyForecast_ } from "@/lib/forecast";
 
 // ---------------------------------------------------------------------------
 // Wspólne narzędzia agenta ReAct (Lekcja 4).
@@ -131,6 +133,30 @@ export const getWeather = tool({
     } catch (err) {
       return connectionError(err);
     }
+  },
+});
+
+// --- Prognoza na tydzień (Open-Meteo, bez klucza API) -----------------------
+// getWeather odpowiada na „jak jest TERAZ", to narzędzie na „jak będzie przez
+// najbliższe dni" — czyli na pytanie, które przy planowaniu podróży zadaje się
+// naprawdę. Logika siedzi w lib/forecast.ts, współdzielona z dashboardem.
+
+export const getWeeklyForecast = tool({
+  description:
+    "Prognoza pogody na kilka najbliższych dni (domyślnie 7) dla podanego miasta. " +
+    "Zwraca temperatury dzienne, ryzyko opadów, wiatr, WSKAZANIE NAJLEPSZEGO DNIA " +
+    "na zwiedzanie oraz podpowiedzi co spakować. Używaj przy planowaniu wyjazdów " +
+    "dłuższych niż jeden dzień — zamiast samej bieżącej pogody.",
+  inputSchema: z.object({
+    city: z.string().describe("Nazwa miasta, np. Barcelona, Berlin, Kraków"),
+    days: z
+      .number()
+      .optional()
+      .describe("Ile dni prognozy, 1-16. Domyślnie 7."),
+  }),
+  execute: async ({ city, days }) => {
+    // lib/forecast.ts nigdy nie rzuca — zwraca dane albo { error }.
+    return await getWeeklyForecast_(city, days ?? 7);
   },
 });
 
@@ -495,6 +521,7 @@ export const searchKnowledge = tool({
 // Komplet narzędzi agenta — używany przez /api/react (i gotowy dla /travel).
 export const reactTools = {
   getWeather,
+  getWeeklyForecast,
   getExchangeRate,
   getHolidays,
   searchWikipedia,
